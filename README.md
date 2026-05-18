@@ -15,6 +15,7 @@ Evolução da [exame-video-poc](../exame-video-poc) (v1), que usava uma lista ha
 | Validar e normalizar payload com defaults | ✅ |
 | Renderizar player YouTube (vídeo e live) | ✅ |
 | Renderizar player Vimeo | ✅ |
+| Renderizar arquivo MP4 direto do WordPress | ✅ |
 | Fit adaptativo via `VideoCover.resize()` (contain para vídeo paisagem em retrato, cover nos demais casos) | ✅ |
 | Aspect ratio real para Vimeo via oEmbed, com fallback para o payload | ✅ |
 | Overlays com dados do payload (title, subtitle, badge, CTA) | ✅ |
@@ -180,7 +181,7 @@ TOAST          (z: 60)  — sempre no topo
 | `PayloadValidator` | Valida campos obrigatórios, normaliza defaults |
 | `VideoCover` | Calcula dimensões do wrapper do player conforme viewport e proporção do vídeo |
 | `MediaMetadata` | Resolve metadados do provider, como aspect ratio real do Vimeo via oEmbed |
-| `PlayerFactory` | Cria e controla players YouTube (IFrame API) e Vimeo (iframe) |
+| `PlayerFactory` | Cria e controla players YouTube (IFrame API), Vimeo (iframe) e arquivo MP4 direto (`<video>`) |
 | `OverlayRenderer` | Popula elementos HTML do overlay via `textContent` |
 
 ---

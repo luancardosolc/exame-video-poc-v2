@@ -57,8 +57,8 @@ type WebStoryVideoPayload = {
   };
 
   media: {
-    provider: 'youtube' | 'youtube_live' | 'vimeo';  // obrigatório
-    videoId: string;                                   // obrigatório
+    provider: 'youtube' | 'youtube_live' | 'vimeo' | 'video_file';  // obrigatório
+    videoId?: string;                                               // obrigatório para YouTube/Vimeo
     sourceUrl?: string;    // URL original (para abrir externamente)
     posterUrl?: string;    // thumbnail de fallback
     aspectRatio?: string;  // '16:9' | '9:16' | '1:1' — default: '16:9'; Vimeo pode ser sobrescrito via oEmbed
@@ -98,7 +98,7 @@ type WebStoryVideoPayload = {
 | `version` | Deve ser exatamente `1` |
 | `story.id` | Identificador do story para analytics |
 | `media.provider` | Determina qual player carregar |
-| `media.videoId` | ID do vídeo no provider |
+| `media.videoId` | ID do vídeo no provider; não é obrigatório para `video_file` |
 
 ---
 
@@ -255,10 +255,10 @@ App executa:   ScreenOrientation.unlockAsync() → fecha a WebView
 
 A página aplica as seguintes regras de segurança:
 
-1. **Apenas providers conhecidos** são aceitos: `youtube`, `youtube_live`, `vimeo`.
+1. **Apenas providers conhecidos** são aceitos: `youtube`, `youtube_live`, `vimeo`, `video_file`.
 2. **`textContent` exclusivamente** para todos os textos do overlay — nunca `innerHTML`.
 3. **URLs de CTA** não são abertas pela página — o evento `analytics` é enviado ao app, que decide.
-4. **`videoId`** é usado apenas como ID no player, não como URL direta.
+4. **`videoId`** é usado apenas como ID no player para YouTube/Vimeo. Para `video_file`, a URL do arquivo vem de `sourceUrl`.
 5. **Iframes de player** têm `pointer-events: none` — cliques nos controles são interceptados pelos overlays nativos da página.
 
 ## Metadados do provider
