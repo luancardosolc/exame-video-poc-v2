@@ -15,7 +15,7 @@ Evolução da [exame-video-poc](../exame-video-poc) (v1), que usava uma lista ha
 | Validar e normalizar payload com defaults | ✅ |
 | Renderizar player YouTube (vídeo e live) | ✅ |
 | Renderizar player Vimeo | ✅ |
-| Cover real (sem barras pretas) via `VideoCover.resize()` | ✅ |
+| Fit adaptativo via `VideoCover.resize()` (contain para vídeo paisagem em retrato, cover nos demais casos) | ✅ |
 | Overlays com dados do payload (title, subtitle, badge, CTA) | ✅ |
 | Badge AO VIVO com animação pulse | ✅ |
 | Botão CTA enviando evento `analytics` ao app | ✅ |
@@ -157,7 +157,7 @@ Permite inspecionar DOM, console, network e breakpoints dentro da WebView.
 
 ```
 APP LAYER      (z: 10)  — container raiz, fake fullscreen (100vw × 100dvh)
-VIDEO LAYER    (z: 20)  — iframe como background, dimensionado pelo VideoCover
+VIDEO LAYER    (z: 20)  — iframe dimensionado pelo VideoCover
 OVERLAY LAYER  (z: 30)  — header, sidebar, controles, footer
   gradiente-top  (z: 1 dentro do overlay)
   gradiente-bottom (z: 1 dentro do overlay)
@@ -177,7 +177,7 @@ TOAST          (z: 60)  — sempre no topo
 | `AppBridge` | Envia eventos ao app via postMessage; registra `__pocV2LoadStory` |
 | `PayloadCodec` | Encode/decode base64url com suporte a Unicode |
 | `PayloadValidator` | Valida campos obrigatórios, normaliza defaults |
-| `VideoCover` | Calcula dimensões de cover real para o wrapper do player |
+| `VideoCover` | Calcula dimensões do wrapper do player conforme viewport e proporção do vídeo |
 | `PlayerFactory` | Cria e controla players YouTube (IFrame API) e Vimeo (iframe) |
 | `OverlayRenderer` | Popula elementos HTML do overlay via `textContent` |
 

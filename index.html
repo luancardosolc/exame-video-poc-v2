@@ -721,6 +721,13 @@ const VideoCover = (function () {
     return 16 / 9;
   }
 
+  function _shouldContainLandscapeInPortrait(viewportRatio) {
+    const isViewportPortrait = viewportRatio < 1;
+    const isMediaLandscape = _ratio > 1;
+
+    return isViewportPortrait && isMediaLandscape;
+  }
+
   function resize(aspectRatioStr) {
     _ratio = _parseRatio(aspectRatioStr);
     _apply();
@@ -729,20 +736,31 @@ const VideoCover = (function () {
   function _apply() {
     const wrapper = document.getElementById('video-wrapper');
     if (!wrapper) return;
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
+    const layer = document.getElementById('video-layer');
+    const vw = layer?.clientWidth || window.innerWidth;
+    const vh = layer?.clientHeight || window.innerHeight;
     const viewportRatio = vw / vh;
-    let w, h;
-    if (viewportRatio > _ratio) {
+    let w, h, fitMode;
+    if (_shouldContainLandscapeInPortrait(viewportRatio)) {
+      // Video paisagem em celular retrato: preserva as laterais do video sem crop.
       w = vw;
       h = vw / _ratio;
+      fitMode = 'contain';
+    } else if (viewportRatio > _ratio) {
+      w = vw;
+      h = vw / _ratio;
+      fitMode = 'cover';
     } else {
       h = vh;
       w = vh * _ratio;
+      fitMode = 'cover';
     }
     wrapper.style.width  = `${Math.ceil(w)}px`;
     wrapper.style.height = `${Math.ceil(h)}px`;
-    Logger.log('cover resize', `${Math.ceil(w)}×${Math.ceil(h)} (ratio ${_ratio.toFixed(4)})`);
+    Logger.log(
+      'video resize',
+      `${Math.ceil(w)}×${Math.ceil(h)} (ratio ${_ratio.toFixed(4)}, fit ${fitMode})`
+    );
   }
 
   return { resize };
