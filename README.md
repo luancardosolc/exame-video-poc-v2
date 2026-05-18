@@ -190,6 +190,10 @@ TOAST          (z: 60)  — sempre no topo
 
 Ver [`docs/contract.md`](docs/contract.md).
 
+## Deploy e infraestrutura
+
+Ver [`docs/deploy.md`](docs/deploy.md) — Cloudflare Worker, pipeline GitHub → auto-deploy, comportamento de cache.
+
 ---
 
 ## Limitações conhecidas
