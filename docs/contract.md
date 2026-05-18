@@ -61,7 +61,7 @@ type WebStoryVideoPayload = {
     videoId: string;                                   // obrigatório
     sourceUrl?: string;    // URL original (para abrir externamente)
     posterUrl?: string;    // thumbnail de fallback
-    aspectRatio?: string;  // '16:9' | '9:16' | '1:1' — default: '16:9'
+    aspectRatio?: string;  // '16:9' | '9:16' | '1:1' — default: '16:9'; Vimeo pode ser sobrescrito via oEmbed
     autoplay?: boolean;    // default: true
     muted?: boolean;       // default: true (obrigatório para autoplay no mobile)
     loop?: boolean;        // default: false
@@ -260,6 +260,12 @@ A página aplica as seguintes regras de segurança:
 3. **URLs de CTA** não são abertas pela página — o evento `analytics` é enviado ao app, que decide.
 4. **`videoId`** é usado apenas como ID no player, não como URL direta.
 5. **Iframes de player** têm `pointer-events: none` — cliques nos controles são interceptados pelos overlays nativos da página.
+
+## Metadados do provider
+
+Para Vimeo, a página tenta resolver o aspect ratio real com `https://vimeo.com/api/oembed.json`.
+Quando `width` e `height` são retornados, o `media.aspectRatio` efetivo passa a usar essas dimensões.
+Se a chamada falhar, a página mantém o `aspectRatio` recebido no payload.
 
 ---
 

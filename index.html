@@ -766,6 +766,56 @@ const VideoCover = (function () {
   return { resize };
 })();
 
+const MediaMetadata = (function () {
+  function _isValidDimension(value) {
+    return Number.isFinite(value) && value > 0;
+  }
+
+  function _resolveVimeoSourceUrl(media) {
+    if (media.sourceUrl) return media.sourceUrl;
+    return `https://vimeo.com/${encodeURIComponent(media.videoId)}`;
+  }
+
+  function _aspectRatioFromDimensions(width, height) {
+    if (!_isValidDimension(width) || !_isValidDimension(height)) return null;
+    return `${Math.round(width)}:${Math.round(height)}`;
+  }
+
+  async function _resolveVimeoAspectRatio(media) {
+    const sourceUrl = _resolveVimeoSourceUrl(media);
+    const oembedUrl = `https://vimeo.com/api/oembed.json?url=${encodeURIComponent(sourceUrl)}`;
+
+    try {
+      const response = await fetch(oembedUrl);
+      if (!response.ok) {
+        Logger.warn('vimeo oembed failed', response.status, sourceUrl);
+        return null;
+      }
+
+      const data = await response.json();
+      const aspectRatio = _aspectRatioFromDimensions(Number(data.width), Number(data.height));
+      Logger.log('vimeo oembed aspect ratio', {
+        sourceUrl,
+        width: data.width,
+        height: data.height,
+        aspectRatio,
+      });
+      return aspectRatio;
+    } catch (e) {
+      Logger.warn('vimeo oembed error', e);
+      return null;
+    }
+  }
+
+  async function resolveAspectRatio(media) {
+    if (media.provider !== 'vimeo') return media.aspectRatio;
+
+    return (await _resolveVimeoAspectRatio(media)) ?? media.aspectRatio;
+  }
+
+  return { resolveAspectRatio };
+})();
+
 const PlayerFactory = (function () {
   let _ytPlayer   = null;
   let _ytApiReady = false;
@@ -985,6 +1035,7 @@ const State = {
   isMuted:      true,
   isPlaying:    true,
   isFullscreen: false,
+  startToken:   0,
 };
 
 function __handlePayload(encoded) {
@@ -1009,10 +1060,16 @@ function __handlePayload(encoded) {
     return;
   }
 
-  _start(payload);
+  _start(payload).catch((e) => {
+    Logger.error('start failed', e);
+    OverlayRenderer.showError('Erro ao iniciar vídeo', e.message ?? 'Falha ao iniciar o vídeo.');
+    AppBridge.send('player:error', { code: 'START_ERROR', message: e.message ?? 'Failed to start video' });
+  });
 }
 
-function _start(payload) {
+async function _start(payload) {
+  const startToken = State.startToken + 1;
+  State.startToken = startToken;
   State.payload   = payload;
   State.isMuted   = payload.media.muted;
   State.isPlaying = payload.media.autoplay;
@@ -1026,9 +1083,21 @@ function _start(payload) {
   const fsBtn = document.getElementById('btn-fullscreen');
   if (fsBtn) fsBtn.style.display = payload.behavior.allowFullscreenToggle ? '' : 'none';
 
-  VideoCover.resize(payload.media.aspectRatio);
+  const resolvedAspectRatio = await MediaMetadata.resolveAspectRatio(payload.media);
+  if (startToken !== State.startToken) return;
 
-  PlayerFactory.create(payload.media, {
+  const resolvedPayload = {
+    ...payload,
+    media: {
+      ...payload.media,
+      aspectRatio: resolvedAspectRatio,
+    },
+  };
+  State.payload = resolvedPayload;
+
+  VideoCover.resize(resolvedPayload.media.aspectRatio);
+
+  PlayerFactory.create(resolvedPayload.media, {
     onReady() {
       Logger.log('player:ready');
       AppBridge.send('player:ready');
