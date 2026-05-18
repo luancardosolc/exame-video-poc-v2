@@ -19,6 +19,8 @@ injectJavaScript(
                           ←── { type: "player:ready" }
                           ←── { type: "player:play" }
                                ...
+(usuário toca lateral)    ←── { type: "story:navigate", payload: { direction: "next" } }
+app troca o slug do story
 (usuário toca fullscreen) ←── { type: "fullscreen:enter" }
 app trava orientação em landscape
 (usuário toca fechar)     ←── { type: "fullscreen:exit" }
@@ -30,10 +32,10 @@ app desbloqueia orientação, fecha WebView
 
 ## Canal de comunicação
 
-| Direção | Mecanismo | Notas |
-|---------|-----------|-------|
-| Web → App | `window.ReactNativeWebView.postMessage(JSON.stringify(msg))` | Sempre JSON estruturado |
-| App → Web | `webViewRef.injectJavaScript('window.__pocV2LoadStory("…"); true;')` | Payload base64url |
+| Direção   | Mecanismo                                                            | Notas                   |
+| --------- | -------------------------------------------------------------------- | ----------------------- |
+| Web → App | `window.ReactNativeWebView.postMessage(JSON.stringify(msg))`         | Sempre JSON estruturado |
+| App → Web | `webViewRef.injectJavaScript('window.__pocV2LoadStory("…"); true;')` | Payload base64url       |
 
 O canal app→web usa `injectJavaScript` (chamada de função direta), **não** `window.postMessage`. Isso evita conflito com os eventos postMessage do player Vimeo, que usam `window.addEventListener('message', ...)` internamente.
 
@@ -46,7 +48,7 @@ type WebStoryVideoPayload = {
   version: 1;
 
   story: {
-    id: string;          // obrigatório
+    id: string; // obrigatório
     slug: string;
     title: string;
     description?: string;
@@ -57,48 +59,48 @@ type WebStoryVideoPayload = {
   };
 
   media: {
-    provider: 'youtube' | 'youtube_live' | 'vimeo' | 'video_file';  // obrigatório
-    videoId?: string;                                               // obrigatório para YouTube/Vimeo
-    sourceUrl?: string;    // URL original (para abrir externamente)
-    posterUrl?: string;    // thumbnail de fallback
-    aspectRatio?: string;  // '16:9' | '9:16' | '1:1' — default: '16:9'; Vimeo pode ser sobrescrito via oEmbed
-    autoplay?: boolean;    // default: true
-    muted?: boolean;       // default: true (obrigatório para autoplay no mobile)
-    loop?: boolean;        // default: false
+    provider: "youtube" | "youtube_live" | "vimeo" | "video_file"; // obrigatório
+    videoId?: string; // obrigatório para YouTube/Vimeo
+    sourceUrl?: string; // URL original (para abrir externamente)
+    posterUrl?: string; // thumbnail de fallback
+    aspectRatio?: string; // '16:9' | '9:16' | '1:1' — default: '16:9'; Vimeo pode ser sobrescrito via oEmbed
+    autoplay?: boolean; // default: true
+    muted?: boolean; // default: true (obrigatório para autoplay no mobile)
+    loop?: boolean; // default: false
   };
 
   overlay?: {
-    eyebrow?: string;       // label pequeno acima do título (ex: "EXAME")
-    title?: string;         // título principal do vídeo
-    subtitle?: string;      // autoria, canal ou descrição curta
-    description?: string;   // texto de apoio (máx. 3 linhas)
-    ctaLabel?: string;      // label do botão CTA
-    ctaUrl?: string;        // URL do CTA (app decide se abre)
-    badge?: string;         // badge customizado (não usada na v2 — reservado)
+    eyebrow?: string; // label pequeno acima do título (ex: "EXAME")
+    title?: string; // título principal do vídeo
+    subtitle?: string; // autoria, canal ou descrição curta
+    description?: string; // texto de apoio (máx. 3 linhas)
+    ctaLabel?: string; // label do botão CTA
+    ctaUrl?: string; // URL do CTA (app decide se abre)
+    badge?: string; // badge customizado (não usada na v2 — reservado)
     showLiveBadge?: boolean; // exibe badge "AO VIVO" com pulse
   };
 
   behavior?: {
-    startFullscreen?: boolean;       // girar para landscape ao abrir
+    startFullscreen?: boolean; // girar para landscape ao abrir
     allowFullscreenToggle?: boolean; // exibe botão de fullscreen — default: true
-    showDebug?: boolean;             // habilita console.log — default: false
+    showDebug?: boolean; // habilita console.log — default: false
   };
 
   theme?: {
-    mode?: 'dark' | 'light';  // default: 'dark' (light reservado para futuro)
-    accentColor?: string;      // cor do CTA — default: '#6366f1'
+    mode?: "dark" | "light"; // default: 'dark' (light reservado para futuro)
+    accentColor?: string; // cor do CTA — default: '#6366f1'
   };
 };
 ```
 
 ### Campos obrigatórios
 
-| Campo | Motivo |
-|-------|--------|
-| `version` | Deve ser exatamente `1` |
-| `story.id` | Identificador do story para analytics |
-| `media.provider` | Determina qual player carregar |
-| `media.videoId` | ID do vídeo no provider; não é obrigatório para `video_file` |
+| Campo            | Motivo                                                       |
+| ---------------- | ------------------------------------------------------------ |
+| `version`        | Deve ser exatamente `1`                                      |
+| `story.id`       | Identificador do story para analytics                        |
+| `media.provider` | Determina qual player carregar                               |
+| `media.videoId`  | ID do vídeo no provider; não é obrigatório para `video_file` |
 
 ---
 
@@ -115,23 +117,25 @@ O payload é serializado como JSON e encodado em **base64url** antes de ser envi
 ### Base64url vs base64 padrão
 
 | Símbolo | Base64 padrão | Base64url |
-|---------|--------------|----------|
-| `+`     | `+`          | `-`       |
-| `/`     | `/`          | `_`       |
-| `=`     | padding      | omitido   |
+| ------- | ------------- | --------- |
+| `+`     | `+`           | `-`       |
+| `/`     | `/`           | `_`       |
+| `=`     | padding       | omitido   |
 
 ### Encoding no app (TypeScript / React Native)
 
 ```typescript
 function toBase64Url(payload: WebStoryVideoPayload): string {
-  const json  = JSON.stringify(payload);
+  const json = JSON.stringify(payload);
   const bytes = new TextEncoder().encode(json);
-  let binary  = '';
-  bytes.forEach(b => { binary += String.fromCharCode(b); });
+  let binary = "";
+  bytes.forEach((b) => {
+    binary += String.fromCharCode(b);
+  });
   return btoa(binary)
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/, '');
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
 }
 ```
 
@@ -139,12 +143,12 @@ function toBase64Url(payload: WebStoryVideoPayload): string {
 
 ```javascript
 function fromBase64Url(encoded) {
-  const base64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
-  const padded  = base64 + '='.repeat((4 - base64.length % 4) % 4);
-  const binary  = atob(padded);
-  const bytes   = new Uint8Array(binary.length);
+  const base64 = encoded.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
+  const binary = atob(padded);
+  const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return JSON.parse(new TextDecoder('utf-8').decode(bytes));
+  return JSON.parse(new TextDecoder("utf-8").decode(bytes));
 }
 ```
 
@@ -165,18 +169,30 @@ A página detecta o query param em `init()` e chama `__pocV2LoadStory` diretamen
 ```javascript
 const payload = {
   version: 1,
-  story:   { id: '1', slug: 'test', title: 'Vídeo de Teste' },
-  media:   { provider: 'youtube', videoId: 'aqz-KE-bpKQ', aspectRatio: '16:9' },
-  overlay: { title: 'Vídeo de Teste', subtitle: '@Blender', showLiveBadge: false },
+  story: { id: "1", slug: "test", title: "Vídeo de Teste" },
+  media: { provider: "youtube", videoId: "aqz-KE-bpKQ", aspectRatio: "16:9" },
+  overlay: {
+    title: "Vídeo de Teste",
+    subtitle: "@Blender",
+    showLiveBadge: false,
+  },
   behavior: { showDebug: true },
 };
 
 const bytes = new TextEncoder().encode(JSON.stringify(payload));
-let binary  = '';
-bytes.forEach(b => { binary += String.fromCharCode(b); });
-const encoded = btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+let binary = "";
+bytes.forEach((b) => {
+  binary += String.fromCharCode(b);
+});
+const encoded = btoa(binary)
+  .replace(/\+/g, "-")
+  .replace(/\//g, "_")
+  .replace(/=+$/, "");
 
-console.log('URL:', location.origin + location.pathname + '?payload=' + encoded);
+console.log(
+  "URL:",
+  location.origin + location.pathname + "?payload=" + encoded,
+);
 ```
 
 ---
@@ -185,17 +201,24 @@ console.log('URL:', location.origin + location.pathname + '?payload=' + encoded)
 
 Todos os eventos são enviados como JSON via `window.ReactNativeWebView.postMessage`.
 
-| `type` | `payload` | Quando |
-|--------|-----------|--------|
-| `ready` | — | Página carregou, `__pocV2LoadStory` registrado |
-| `player:ready` | — | Player inicializado e pronto para reprodução |
-| `player:play` | — | Reprodução iniciada ou retomada |
-| `player:pause` | — | Reprodução pausada |
-| `player:error` | `{ code: string, message: string }` | Erro no player ou payload inválido |
-| `fullscreen:enter` | — | Usuário ativou modo paisagem |
-| `fullscreen:exit` | — | Usuário saiu do modo paisagem |
-| `close` | — | Usuário fechou o player |
-| `analytics` | `{ event: string, data: object }` | Ação rastreável do usuário |
+| `type`             | `payload`                                                                   | Quando                                                                         |
+| ------------------ | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `ready`            | —                                                                           | Página carregou, `__pocV2LoadStory` registrado                                 |
+| `player:ready`     | —                                                                           | Player inicializado e pronto para reprodução                                   |
+| `player:play`      | —                                                                           | Reprodução iniciada ou retomada                                                |
+| `player:pause`     | —                                                                           | Reprodução pausada                                                             |
+| `player:error`     | `{ code: string, message: string }`                                         | Erro no player ou payload inválido                                             |
+| `fullscreen:enter` | —                                                                           | Usuário ativou modo paisagem                                                   |
+| `fullscreen:exit`  | —                                                                           | Usuário saiu do modo paisagem                                                  |
+| `close`            | —                                                                           | Usuário fechou o player                                                        |
+| `story:navigate`   | `{ direction: "previous" \| "next", storyId?: string, storySlug?: string }` | Usuário tocou nas laterais da experiência para pedir story anterior ou próximo |
+| `analytics`        | `{ event: string, data: object }`                                           | Ação rastreável do usuário                                                     |
+
+### Navegação lateral entre stories
+
+A POC v2 apenas detecta o toque lateral e envia a intenção para o app. A troca real de story continua no app, que mantém lista, paginação, prefetch, loading e analytics do viewer.
+
+As zonas laterais ficam abaixo dos controles interativos. Botões como fechar, curtir, comentar, compartilhar, play/pause, mute, fullscreen e CTA permanecem acima da camada de navegação e não devem disparar `story:navigate`.
 
 ### Exemplos de payload de analytics
 
@@ -207,14 +230,14 @@ Todos os eventos são enviados como JSON via `window.ReactNativeWebView.postMess
 
 ### Códigos de erro (`player:error`)
 
-| `code` | Descrição |
-|--------|----------|
-| `DECODE_ERROR` | Falha ao decodificar o base64url |
-| `INVALID_PAYLOAD` | Campo obrigatório ausente ou inválido |
-| `2` | YouTube: parâmetro inválido |
-| `5` | YouTube: erro no player HTML5 |
-| `100` | YouTube: vídeo não encontrado |
-| `101` / `150` | YouTube: embedding desabilitado pelo owner |
+| `code`            | Descrição                                  |
+| ----------------- | ------------------------------------------ |
+| `DECODE_ERROR`    | Falha ao decodificar o base64url           |
+| `INVALID_PAYLOAD` | Campo obrigatório ausente ou inválido      |
+| `2`               | YouTube: parâmetro inválido                |
+| `5`               | YouTube: erro no player HTML5              |
+| `100`             | YouTube: vídeo não encontrado              |
+| `101` / `150`     | YouTube: embedding desabilitado pelo owner |
 
 ---
 
@@ -222,8 +245,8 @@ Todos os eventos são enviados como JSON via `window.ReactNativeWebView.postMess
 
 O único canal app→web é via `injectJavaScript`. Não há `postMessage` do app para a página.
 
-| Chamada injetada | Quando |
-|------------------|--------|
+| Chamada injetada                              | Quando                           |
+| --------------------------------------------- | -------------------------------- |
 | `window.__pocV2LoadStory("base64url"); true;` | Após receber `{ type: "ready" }` |
 
 ---

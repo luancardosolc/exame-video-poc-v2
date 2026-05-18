@@ -23,8 +23,9 @@
        Z-INDEX MAP
        10  APP LAYER     — container raiz, fake fullscreen
        20  VIDEO LAYER   — iframe/player como background
-       30  OVERLAY LAYER — UI social por cima do vídeo
-       40  GESTURE LAYER — captura toques (pointer-events: none)
+       30  OVERLAY VISUAL — gradientes e textos não interativos
+       40  GESTURE LAYER  — zonas laterais para navegar stories
+       50  CONTROLS       — botões e controles interativos
        ===================================================== */
 
     /* =====================================================
@@ -129,7 +130,7 @@
       position: absolute;
       top: 0; left: 0;
       width: 100%; height: 100%;
-      z-index: 30;
+      z-index: 50;
       pointer-events: none;
     }
 
@@ -170,7 +171,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      z-index: 31;
+      z-index: 51;
       pointer-events: all;
     }
 
@@ -227,7 +228,7 @@
       flex-direction: column;
       align-items: center;
       gap: 18px;
-      z-index: 31;
+      z-index: 51;
       pointer-events: all;
     }
 
@@ -264,7 +265,7 @@
       left: 16px;
       display: flex;
       gap: 10px;
-      z-index: 33;
+      z-index: 51;
       pointer-events: all;
     }
 
@@ -295,7 +296,7 @@
       padding-right: 70px;
       padding-bottom: calc(16px + env(safe-area-inset-bottom));
       z-index: 31;
-      pointer-events: all;
+      pointer-events: none;
     }
 
     .video-eyebrow {
@@ -351,6 +352,7 @@
       cursor: pointer;
       box-shadow: 0 4px 20px rgba(99,102,241,0.45);
       transition: transform 0.15s, box-shadow 0.15s;
+      pointer-events: all;
     }
     .btn-cta:active {
       transform: scale(0.96);
@@ -390,6 +392,22 @@
       z-index: 40;
       pointer-events: none;
     }
+
+    .gesture-zone {
+      position: absolute;
+      top: 0;
+      width: 28%;
+      height: 100%;
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+      pointer-events: auto;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .gesture-zone-left { left: 0; }
+    .gesture-zone-right { right: 0; }
 
     /* =====================================================
        TOAST
@@ -489,7 +507,7 @@
 
     <!-- Header -->
     <div class="overlay-header">
-      <button class="btn-close" onclick="handleClose()" aria-label="Fechar">✕</button>
+      <button class="btn-close" onclick="handleClose()" aria-label="Fechar" data-interactive="true">✕</button>
       <div class="badge-live" id="badge-live" aria-label="Transmissão ao vivo">
         <span class="dot"></span>AO VIVO
       </div>
@@ -498,15 +516,15 @@
 
     <!-- Sidebar -->
     <div class="overlay-sidebar">
-      <button class="sidebar-btn" onclick="handleSidebarAction('like')" aria-label="Curtir">
+      <button class="sidebar-btn" onclick="handleSidebarAction('like')" aria-label="Curtir" data-interactive="true">
         <div class="icon">❤️</div>
         <span class="label">Curtir</span>
       </button>
-      <button class="sidebar-btn" onclick="handleSidebarAction('comment')" aria-label="Comentar">
+      <button class="sidebar-btn" onclick="handleSidebarAction('comment')" aria-label="Comentar" data-interactive="true">
         <div class="icon">💬</div>
         <span class="label">Comentar</span>
       </button>
-      <button class="sidebar-btn" onclick="handleSidebarAction('share')" aria-label="Compartilhar">
+      <button class="sidebar-btn" onclick="handleSidebarAction('share')" aria-label="Compartilhar" data-interactive="true">
         <div class="icon">↗️</div>
         <span class="label">Enviar</span>
       </button>
@@ -514,9 +532,9 @@
 
     <!-- Controles do player -->
     <div class="player-controls">
-      <button class="ctrl-btn" id="btn-play"       onclick="togglePlay()"       aria-label="Play/Pause">⏸</button>
-      <button class="ctrl-btn" id="btn-mute"       onclick="toggleMute()"       aria-label="Mute/Unmute">🔇</button>
-      <button class="ctrl-btn" id="btn-fullscreen" onclick="handleFullscreen()" aria-label="Tela cheia">⛶</button>
+      <button class="ctrl-btn" id="btn-play"       onclick="togglePlay()"       aria-label="Play/Pause" data-interactive="true">⏸</button>
+      <button class="ctrl-btn" id="btn-mute"       onclick="toggleMute()"       aria-label="Mute/Unmute" data-interactive="true">🔇</button>
+      <button class="ctrl-btn" id="btn-fullscreen" onclick="handleFullscreen()" aria-label="Tela cheia" data-interactive="true">⛶</button>
     </div>
 
     <!-- Footer -->
@@ -525,7 +543,7 @@
       <p class="video-title"       id="overlay-title"></p>
       <p class="video-subtitle"    id="overlay-subtitle"></p>
       <p class="video-description" id="overlay-description"></p>
-      <button class="btn-cta" id="btn-cta" style="display:none"></button>
+      <button class="btn-cta" id="btn-cta" style="display:none" data-interactive="true"></button>
     </div>
 
     <!-- Reactions -->
@@ -533,7 +551,22 @@
   </div>
 
   <!-- GESTURE LAYER -->
-  <div id="gesture-layer"></div>
+  <div id="gesture-layer" aria-hidden="true">
+    <button
+      class="gesture-zone gesture-zone-left"
+      type="button"
+      tabindex="-1"
+      aria-hidden="true"
+      onclick="handleStoryNavigationTap(event, 'previous')"
+    ></button>
+    <button
+      class="gesture-zone gesture-zone-right"
+      type="button"
+      tabindex="-1"
+      aria-hidden="true"
+      onclick="handleStoryNavigationTap(event, 'next')"
+    ></button>
+  </div>
 
 </div>
 
@@ -1260,6 +1293,24 @@ function handleSidebarAction(action) {
     data:  { storyId: story?.id, storySlug: story?.slug },
   });
   Logger.log('sidebar action', action);
+}
+
+function _isInteractiveTarget(target) {
+  const interactive = target?.closest?.('button, a, [role="button"], [data-interactive="true"]');
+  return Boolean(interactive && !interactive.classList.contains('gesture-zone'));
+}
+
+function handleStoryNavigationTap(event, direction) {
+  if (_isInteractiveTarget(event.target)) return;
+  if (direction !== 'previous' && direction !== 'next') return;
+  if (!State.payload?.story) return;
+
+  AppBridge.send('story:navigate', {
+    direction,
+    storyId:   State.payload.story.id,
+    storySlug: State.payload.story.slug,
+  });
+  Logger.log('story navigate', direction);
 }
 
 function _updateBtnPlay() {
