@@ -754,6 +754,13 @@ const PayloadValidator = (function () {
   return { validate };
 })();
 
+function createPlayerError(code, message, details) {
+  const error = new Error(message);
+  error.code = code;
+  error.details = details;
+  return error;
+}
+
 const VideoCover = (function () {
   let _ratio = 16 / 9;
 
@@ -832,6 +839,12 @@ const MediaMetadata = (function () {
       const response = await fetch(oembedUrl);
       if (!response.ok) {
         Logger.warn('vimeo oembed failed', response.status, sourceUrl);
+        if (response.status === 404) {
+          throw createPlayerError('VIMEO_NOT_FOUND', 'Vídeo indisponível no Vimeo.', {
+            status: response.status,
+            sourceUrl,
+          });
+        }
         return null;
       }
 
@@ -845,6 +858,7 @@ const MediaMetadata = (function () {
       });
       return aspectRatio;
     } catch (e) {
+      if (e?.code) throw e;
       Logger.warn('vimeo oembed error', e);
       return null;
     }
@@ -860,10 +874,35 @@ const MediaMetadata = (function () {
 })();
 
 const PlayerFactory = (function () {
+  const PLAYER_READY_TIMEOUT_MS = 12_000;
+
   let _ytPlayer   = null;
   let _ytApiReady = false;
   let _pendingYT  = null;
   let _fileVideo  = null;
+  let _readyTimer = null;
+
+  function _clearReadyTimer() {
+    if (!_readyTimer) return;
+    clearTimeout(_readyTimer);
+    _readyTimer = null;
+  }
+
+  function _watchReady(provider, callbacks) {
+    _clearReadyTimer();
+    _readyTimer = setTimeout(() => {
+      _readyTimer = null;
+      callbacks.onError?.({
+        code: `${provider.toUpperCase()}_READY_TIMEOUT`,
+        message: `${provider} player did not become ready in time.`,
+      });
+    }, PLAYER_READY_TIMEOUT_MS);
+  }
+
+  function _markReady(callbacks) {
+    _clearReadyTimer();
+    callbacks.onReady?.();
+  }
 
   window.onYouTubeIframeAPIReady = function () {
     _ytApiReady = true;
@@ -912,7 +951,7 @@ const PlayerFactory = (function () {
         onReady(e) {
           e.target.playVideo();
           Logger.log('YouTube onReady');
-          callbacks.onReady?.();
+          _markReady(callbacks);
         },
         onStateChange(e) {
           if (e.data === YT.PlayerState.PLAYING) {
@@ -972,10 +1011,17 @@ const PlayerFactory = (function () {
       style="width:100%;height:100%;border:none;pointer-events:none;"
     ></iframe>`;
 
+    _watchReady('vimeo', callbacks);
     AppBridge.listenIframeMessages((data) => {
-      if (data.event === 'ready')  callbacks.onReady?.();
+      if (data.event === 'ready')  _markReady(callbacks);
       if (data.event === 'play')   callbacks.onPlay?.();
       if (data.event === 'pause')  callbacks.onPause?.();
+      if (data.event === 'error') {
+        callbacks.onError?.({
+          code: 'VIMEO_PLAYER_ERROR',
+          message: data?.data?.message ?? 'Vimeo player error.',
+        });
+      }
     });
   }
 
@@ -1008,7 +1054,7 @@ const PlayerFactory = (function () {
         VideoCover.resize(`${video.videoWidth}:${video.videoHeight}`);
       }
 
-      callbacks.onReady?.();
+      _markReady(callbacks);
 
       if (autoplay) {
         const playPromise = video.play();
@@ -1044,6 +1090,7 @@ const PlayerFactory = (function () {
     Logger.log('create player', media.provider, media.videoId);
 
     if (media.provider === 'youtube' || media.provider === 'youtube_live') {
+      _watchReady('youtube', callbacks);
       _loadYouTubeAPI();
       const args = { videoId: media.videoId, autoplay: media.autoplay, muted: media.muted, loop: media.loop, callbacks };
       if (!_ytApiReady) {
@@ -1055,11 +1102,13 @@ const PlayerFactory = (function () {
     } else if (media.provider === 'vimeo') {
       _doCreateVimeo({ ...media, callbacks });
     } else if (media.provider === 'video_file') {
+      _watchReady('video_file', callbacks);
       _doCreateVideoFile({ ...media, callbacks });
     }
   }
 
   function destroy() {
+    _clearReadyTimer();
     AppBridge.stopListeningIframeMessages();
     if (_ytPlayer) {
       try { _ytPlayer.destroy(); } catch { /* ignorado */ }
@@ -1190,8 +1239,13 @@ function __handlePayload(encoded) {
 
   _start(payload).catch((e) => {
     Logger.error('start failed', e);
-    OverlayRenderer.showError('Erro ao iniciar vídeo', e.message ?? 'Falha ao iniciar o vídeo.');
-    AppBridge.send('player:error', { code: 'START_ERROR', message: e.message ?? 'Failed to start video' });
+    const code = e?.code ?? 'START_ERROR';
+    const message = e?.message ?? 'Failed to start video';
+    OverlayRenderer.showError(
+      'Vídeo indisponível',
+      'Não foi possível carregar este vídeo no momento.'
+    );
+    AppBridge.send('player:error', { code, message });
   });
 }
 
@@ -1225,8 +1279,10 @@ async function _start(payload) {
 
   VideoCover.resize(resolvedPayload.media.aspectRatio);
 
+  let didFailBeforeReady = false;
   PlayerFactory.create(resolvedPayload.media, {
     onReady() {
+      if (didFailBeforeReady) return;
       Logger.log('player:ready');
       AppBridge.send('player:ready');
       _updateBtnPlay();
@@ -1235,8 +1291,12 @@ async function _start(payload) {
     onPlay()  { State.isPlaying = true;  _updateBtnPlay(); AppBridge.send('player:play'); },
     onPause() { State.isPlaying = false; _updateBtnPlay(); AppBridge.send('player:pause'); },
     onError(e) {
+      didFailBeforeReady = true;
       Logger.error('player:error', e);
-      OverlayRenderer.showError('Erro no player', e.message ?? 'Falha ao reproduzir o vídeo.');
+      OverlayRenderer.showError(
+        'Vídeo indisponível',
+        'Não foi possível carregar este vídeo no momento.'
+      );
       AppBridge.send('player:error', e);
     },
   });
