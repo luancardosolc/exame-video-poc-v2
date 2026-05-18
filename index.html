@@ -1363,12 +1363,11 @@ function _isInteractiveTarget(target) {
 function handleStoryNavigationTap(event, direction) {
   if (_isInteractiveTarget(event.target)) return;
   if (direction !== 'previous' && direction !== 'next') return;
-  if (!State.payload?.story) return;
 
   AppBridge.send('story:navigate', {
     direction,
-    storyId:   State.payload.story.id,
-    storySlug: State.payload.story.slug,
+    storyId:   State.payload?.story.id,
+    storySlug: State.payload?.story.slug,
   });
   Logger.log('story navigate', direction);
 }
