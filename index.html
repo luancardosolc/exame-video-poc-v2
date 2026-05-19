@@ -405,7 +405,6 @@
         left: 0;
         width: 100%;
         padding: 16px;
-        padding-right: 70px;
         padding-bottom: calc(16px + env(safe-area-inset-bottom));
         z-index: 31;
         pointer-events: none;
@@ -687,48 +686,8 @@
           </div>
         </div>
 
-        <!-- Sidebar -->
-        <div class="overlay-sidebar">
-          <button
-            class="sidebar-btn"
-            onclick="handleSidebarAction('like')"
-            aria-label="Curtir"
-            data-interactive="true"
-          >
-            <div class="icon">❤️</div>
-            <span class="label">Curtir</span>
-          </button>
-          <button
-            class="sidebar-btn"
-            onclick="handleSidebarAction('comment')"
-            aria-label="Comentar"
-            data-interactive="true"
-          >
-            <div class="icon">💬</div>
-            <span class="label">Comentar</span>
-          </button>
-          <button
-            class="sidebar-btn"
-            onclick="handleSidebarAction('share')"
-            aria-label="Compartilhar"
-            data-interactive="true"
-          >
-            <div class="icon">↗️</div>
-            <span class="label">Enviar</span>
-          </button>
-        </div>
-
         <!-- Controles do player -->
         <div class="player-controls">
-          <button
-            class="ctrl-btn"
-            id="btn-play"
-            onclick="togglePlay()"
-            aria-label="Play/Pause"
-            data-interactive="true"
-          >
-            ⏸
-          </button>
           <button
             class="ctrl-btn"
             id="btn-mute"
