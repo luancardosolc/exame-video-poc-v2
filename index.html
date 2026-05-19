@@ -203,9 +203,57 @@
         padding-top: calc(12px + env(safe-area-inset-top));
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        gap: 12px;
         z-index: 51;
         pointer-events: all;
+      }
+
+      /* --- Story Pill --- */
+      .story-pill {
+        flex: 1;
+        min-width: 0;
+        height: 40px;
+        border-radius: 100px;
+        overflow: hidden;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 16px;
+      }
+
+      .story-pill-bg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-size: cover;
+        background-position: center;
+        background-color: rgba(0, 0, 0, 0.45);
+      }
+
+      .story-pill-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+      }
+
+      .story-pill-title {
+        position: relative;
+        z-index: 1;
+        color: #fff;
+        font-size: 14px;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+        letter-spacing: 0.01em;
       }
 
       .btn-close {
@@ -606,6 +654,11 @@
           >
             ✕
           </button>
+          <div class="story-pill" id="story-pill">
+            <div class="story-pill-bg" id="story-pill-bg"></div>
+            <div class="story-pill-overlay"></div>
+            <span class="story-pill-title" id="story-pill-title"></span>
+          </div>
           <div
             class="badge-live"
             id="badge-live"
@@ -613,7 +666,6 @@
           >
             <span class="dot"></span>AO VIVO
           </div>
-          <div style="width: 36px; flex-shrink: 0"></div>
         </div>
 
         <!-- Sidebar -->
@@ -1546,6 +1598,24 @@
           }
         }
 
+        function renderPill(posterUrl, title) {
+          const bg = document.getElementById("story-pill-bg");
+          const titleEl = document.getElementById("story-pill-title");
+
+          if (bg) {
+            if (posterUrl && typeof posterUrl === "string") {
+              bg.style.backgroundImage = `url("${posterUrl.replace(/"/g, "%22")}")`;
+            } else {
+              bg.style.backgroundImage = "";
+            }
+          }
+
+          if (titleEl) {
+            titleEl.textContent =
+              typeof title === "string" && title.trim() ? title.trim() : "";
+          }
+        }
+
         function showError(title, message) {
           const overlay = document.getElementById("error-overlay");
           if (!overlay) return;
@@ -1561,7 +1631,7 @@
           if (overlay) overlay.style.display = "none";
         }
 
-        return { render, showError, hideError };
+        return { render, renderPill, showError, hideError };
       })();
 
       const State = {
@@ -1629,6 +1699,10 @@
 
         OverlayRenderer.hideError();
         OverlayRenderer.render(payload.overlay);
+        OverlayRenderer.renderPill(
+          payload.media.posterUrl,
+          payload.overlay?.title || payload.story.title
+        );
 
         const fsBtn = document.getElementById("btn-fullscreen");
         if (fsBtn)
@@ -1775,12 +1849,75 @@
         if (_isInteractiveTarget(event.target)) return;
         if (direction !== "previous" && direction !== "next") return;
 
+        sendStoryNavigation(direction);
+      }
+
+      function sendStoryNavigation(direction) {
         AppBridge.send("story:navigate", {
           direction,
           storyId: State.payload?.story.id,
           storySlug: State.payload?.story.slug,
         });
         Logger.log("story navigate", direction);
+      }
+
+      const STORY_SWIPE_DISTANCE_THRESHOLD = 64;
+      const STORY_SWIPE_DIRECTION_RATIO = 1.25;
+      let _storySwipeStart = null;
+
+      function setupStoryNavigationSwipe() {
+        const app = document.getElementById("app");
+        if (!app) return;
+
+        app.addEventListener(
+          "touchstart",
+          (event) => {
+            if (event.touches.length !== 1) {
+              _storySwipeStart = null;
+              return;
+            }
+            if (_isInteractiveTarget(event.target)) {
+              _storySwipeStart = null;
+              return;
+            }
+
+            const touch = event.touches[0];
+            _storySwipeStart = {
+              x: touch.clientX,
+              y: touch.clientY,
+            };
+          },
+          { passive: true },
+        );
+
+        app.addEventListener(
+          "touchend",
+          (event) => {
+            if (!_storySwipeStart || event.changedTouches.length !== 1) return;
+
+            const touch = event.changedTouches[0];
+            const dx = touch.clientX - _storySwipeStart.x;
+            const dy = touch.clientY - _storySwipeStart.y;
+            _storySwipeStart = null;
+
+            const absDx = Math.abs(dx);
+            const absDy = Math.abs(dy);
+            if (
+              absDx < STORY_SWIPE_DISTANCE_THRESHOLD ||
+              absDx <= absDy * STORY_SWIPE_DIRECTION_RATIO
+            ) {
+              return;
+            }
+
+            event.preventDefault();
+            sendStoryNavigation(dx < 0 ? "next" : "previous");
+          },
+          { passive: false },
+        );
+
+        app.addEventListener("touchcancel", () => {
+          _storySwipeStart = null;
+        });
       }
 
       function _updateBtnPlay() {
@@ -1837,6 +1974,7 @@
         }
 
         AppBridge.registerEntrypoint(__handlePayload);
+        setupStoryNavigationSwipe();
 
         const paramEncoded = new URLSearchParams(window.location.search).get(
           "payload",

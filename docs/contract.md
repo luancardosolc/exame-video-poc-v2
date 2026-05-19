@@ -22,7 +22,7 @@ injectJavaScript(
                           ←── { type: "player:progress", payload: { currentTime, duration } }
                           ←── { type: "player:ended" }
                                ...
-(usuário toca lateral)    ←── { type: "story:navigate", payload: { direction: "next" } }
+(usuário toca/swipa)      ←── { type: "story:navigate", payload: { direction: "next" } }
 app troca o slug do story
 (usuário toca fullscreen) ←── { type: "fullscreen:enter" }
 app trava orientação em landscape
@@ -219,12 +219,12 @@ Todos os eventos são enviados como JSON via `window.ReactNativeWebView.postMess
 | `fullscreen:enter` | —                                                                           | Usuário ativou modo paisagem                                                   |
 | `fullscreen:exit`  | —                                                                           | Usuário saiu do modo paisagem                                                  |
 | `close`            | —                                                                           | Usuário fechou o player                                                        |
-| `story:navigate`   | `{ direction: "previous" \| "next", storyId?: string, storySlug?: string }` | Usuário tocou nas laterais da experiência para pedir story anterior ou próximo |
+| `story:navigate`   | `{ direction: "previous" \| "next", storyId?: string, storySlug?: string }` | Usuário tocou nas laterais ou fez swipe horizontal para pedir story anterior ou próximo |
 | `analytics`        | `{ event: string, data: object }`                                           | Ação rastreável do usuário                                                     |
 
 ### Navegação lateral entre stories
 
-A POC v2 apenas detecta o toque lateral e envia a intenção para o app. A troca real de story continua no app, que mantém lista, paginação, prefetch, loading e analytics do viewer.
+A POC v2 detecta toque lateral e swipe horizontal e envia a intenção para o app. A troca real de story continua no app, que mantém lista, paginação, prefetch, loading e analytics do viewer.
 
 As zonas laterais ficam abaixo dos controles interativos. Botões como fechar, curtir, comentar, compartilhar, play/pause, mute, fullscreen e CTA permanecem acima da camada de navegação e não devem disparar `story:navigate`.
 
