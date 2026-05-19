@@ -770,7 +770,7 @@
        ===================================================== */
       #video-progress-track {
         position: absolute;
-        top: calc(var(--sai-top) + 5px);
+        top: calc(var(--sai-top) + 10px);
         left: 0;
         width: 100%;
         height: 3px;
@@ -1693,9 +1693,13 @@
             autoplay: autoplay ? "1" : "0",
             muted: muted ? "1" : "0",
             loop: loop ? "1" : "0",
-            background: "1",
+            controls: "0",
+            title: "0",
+            byline: "0",
+            portrait: "0",
             playsinline: "1",
             quality: "auto",
+            dnt: "1",
           });
 
           wrapper.innerHTML = `<iframe
