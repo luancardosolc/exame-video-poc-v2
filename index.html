@@ -21,6 +21,23 @@
         padding: 0;
       }
 
+      /* =====================================================
+       DESIGN TOKENS
+       --sai-*  : safe area real injetada pelo app nativo
+                  (fallback para env() quando rodando no browser)
+       --space-* : espaçamento visual do layout, independente de safe area
+       ===================================================== */
+      :root {
+        --sai-top:    env(safe-area-inset-top,    0px);
+        --sai-right:  env(safe-area-inset-right,  0px);
+        --sai-bottom: env(safe-area-inset-bottom, 0px);
+        --sai-left:   env(safe-area-inset-left,   0px);
+
+        --space-inline:          16px; /* padding lateral padrão do layout */
+        --space-control:         12px; /* distância mínima dos botões à borda segura */
+        --landscape-sidebar-gap: 68px; /* recuo extra do texto para não cobrir a sidebar em landscape */
+      }
+
       body {
         background: #000;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -199,8 +216,10 @@
         top: 0;
         left: 0;
         width: 100%;
-        padding: 12px 16px;
-        padding-top: calc(32px + env(safe-area-inset-top));
+        padding-top: calc(32px + var(--sai-top));
+        padding-right: calc(var(--space-inline) + var(--sai-right));
+        padding-bottom: 12px;
+        padding-left: calc(var(--space-inline) + var(--sai-left));
         display: flex;
         align-items: center;
         gap: 12px;
@@ -317,8 +336,8 @@
       /* --- Sidebar (direita) --- */
       .overlay-sidebar {
         position: absolute;
-        right: 12px;
-        bottom: calc(120px + env(safe-area-inset-bottom));
+        right: var(--space-control);
+        bottom: calc(120px + var(--sai-bottom));
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -366,8 +385,7 @@
       /* --- Controles do player --- */
       .player-controls {
         display: flex;
-        justify-content: flex-end;
-        width: 100%;
+        align-self: flex-end;
         gap: 10px;
         z-index: 51;
         pointer-events: all;
@@ -405,8 +423,10 @@
         bottom: 0;
         left: 0;
         width: 100%;
-        padding: 16px;
-        padding-bottom: calc(16px + env(safe-area-inset-bottom));
+        padding-top: 16px;
+        padding-right: calc(var(--space-control) + var(--sai-right));
+        padding-bottom: calc(12px + var(--sai-bottom));
+        padding-left: calc(var(--space-inline) + var(--sai-left));
         z-index: 31;
         pointer-events: none;
         display: flex;
@@ -560,14 +580,29 @@
        LANDSCAPE
        ===================================================== */
       @media (orientation: landscape) {
+        /* Header: em landscape o top safe area é mínimo; laterais precisam de proteção */
+        .overlay-header {
+          padding-top: max(12px, var(--sai-top));
+          padding-right: calc(var(--space-inline) + var(--sai-right));
+          padding-left: calc(var(--space-inline) + var(--sai-left));
+        }
+
+        /* Sidebar: adiciona safe area lateral direita em landscape */
         .overlay-sidebar {
-          right: calc(12px + env(safe-area-inset-right));
+          right: calc(var(--space-control) + var(--sai-right));
           bottom: 60px;
         }
+
+        /* Footer: left/right/bottom já corretos na base com vars;
+           só alinha padding-left com a orientação para garantir consistência */
         .overlay-footer {
-          padding-left: calc(16px + env(safe-area-inset-left));
-          padding-right: calc(80px + env(safe-area-inset-right));
-          padding-bottom: calc(12px + env(safe-area-inset-bottom));
+          padding-left: calc(var(--space-inline) + var(--sai-left));
+        }
+
+        /* Texto: recuo extra à direita para não sobrepor a sidebar em landscape.
+           Não afeta .player-controls (que usa align-self: flex-end no footer). */
+        .footer-rail {
+          padding-right: var(--landscape-sidebar-gap);
         }
       }
 
@@ -800,6 +835,29 @@
           registerEntrypoint,
         };
       })();
+
+      /* =====================================================
+       SAFE AREA — injetada pelo app nativo via injectJavaScript
+       Atualiza as CSS custom properties --sai-* no :root.
+       Fallback: se não injetado, as vars já têm env() como default.
+       ===================================================== */
+      window.__pocSetSafeArea = function (safeArea) {
+        if (!safeArea) return;
+
+        var top    = Math.max(0, Number(safeArea.top)    || 0);
+        var right  = Math.max(0, Number(safeArea.right)  || 0);
+        var bottom = Math.max(0, Number(safeArea.bottom) || 0);
+        var left   = Math.max(0, Number(safeArea.left)   || 0);
+
+        var root = document.documentElement;
+        root.style.setProperty('--sai-top',    top    + 'px');
+        root.style.setProperty('--sai-right',  right  + 'px');
+        root.style.setProperty('--sai-bottom', bottom + 'px');
+        root.style.setProperty('--sai-left',   left   + 'px');
+
+        window.__nativeSafeArea = { top: top, right: right, bottom: bottom, left: left };
+        Logger.log('safe area atualizada', window.__nativeSafeArea);
+      };
 
       const PayloadCodec = (function () {
         function decode(encoded) {
