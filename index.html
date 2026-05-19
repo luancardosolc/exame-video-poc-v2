@@ -409,10 +409,23 @@
         cursor: pointer;
         padding: 0;
         -webkit-tap-highlight-color: transparent;
-        transition: background 0.15s;
+        position: relative;
+        overflow: hidden;
       }
       .details-pag-bar.active {
+        background: #444;
+      }
+      .details-pag-bar.active::after {
+        content: '';
+        position: absolute;
+        inset: 0;
         background: #fff;
+        transform: scaleX(0);
+        transform-origin: left;
+        animation: pag-fill 5s linear forwards;
+      }
+      @keyframes pag-fill {
+        to { transform: scaleX(1); }
       }
 
       .details-summary-block {
@@ -2007,6 +2020,7 @@
       async function _start(payload) {
         const startToken = State.startToken + 1;
         State.startToken = startToken;
+        if (DetailsPanel.isOpen()) DetailsPanel.close();
         State.payload = payload;
         State.isMuted = payload.media.muted;
         State.isPlaying = payload.media.autoplay;
@@ -2173,10 +2187,17 @@
         if (_isInteractiveTarget(event.target)) return;
         if (direction !== "previous" && direction !== "next") return;
 
+        if (DetailsPanel.isOpen()) {
+          if (direction === "next") DetailsPanel.next();
+          else DetailsPanel.previous();
+          return;
+        }
+
         sendStoryNavigation(direction);
       }
 
       function sendStoryNavigation(direction) {
+        if (DetailsPanel.isOpen()) DetailsPanel.close();
         AppBridge.send("story:navigate", {
           direction,
           storyId: State.payload?.story.id,
@@ -2261,6 +2282,9 @@
       const DetailsPanel = (function () {
         let _details = null;
         let _activeIndex = 0;
+        let _autoTimer = null;
+
+        const AUTO_PROGRESS_MS = 5000;
 
         function _setVisible(id, show) {
           const el = document.getElementById(id);
@@ -2283,7 +2307,13 @@
           if (pagEl) {
             const bars = pagEl.querySelectorAll(".details-pag-bar");
             bars.forEach((bar, i) => {
-              bar.classList.toggle("active", i === index);
+              if (i === index) {
+                bar.classList.remove("active");
+                bar.offsetWidth; // reflow para reiniciar a animação
+                bar.classList.add("active");
+              } else {
+                bar.classList.remove("active");
+              }
             });
           }
         }
@@ -2301,7 +2331,7 @@
             btn.className = "details-pag-bar" + (i === 0 ? " active" : "");
             btn.setAttribute("aria-label", `Abrir detalhe ${i + 1}`);
             btn.setAttribute("data-interactive", "true");
-            btn.addEventListener("click", () => _renderSlide(i));
+            btn.addEventListener("click", () => { _renderSlide(i); _startTimer(); });
             pagEl.appendChild(btn);
           });
           pagEl.style.display = "flex";
@@ -2373,10 +2403,12 @@
           const scrollEl = document.getElementById("details-scroll");
           if (scrollEl) scrollEl.scrollTop = 0;
 
+          _startTimer();
           Logger.log("details panel aberto");
         }
 
         function close() {
+          _clearTimer();
           const panel = document.getElementById("details-panel");
           if (panel) {
             panel.setAttribute("aria-hidden", "true");
@@ -2386,7 +2418,44 @@
           Logger.log("details panel fechado");
         }
 
-        return { open, close };
+        function _clearTimer() {
+          if (_autoTimer) { clearTimeout(_autoTimer); _autoTimer = null; }
+        }
+
+        function _startTimer() {
+          _clearTimer();
+          _autoTimer = setTimeout(function () {
+            _autoTimer = null;
+            const slides = _details?.slides ?? [];
+            if (_activeIndex < slides.length - 1) {
+              _renderSlide(_activeIndex + 1);
+              _startTimer();
+            } else {
+              handleCloseDetails();
+            }
+          }, AUTO_PROGRESS_MS);
+        }
+
+        function isOpen() { return _details !== null; }
+
+        function next() {
+          const slides = _details?.slides ?? [];
+          if (_activeIndex < slides.length - 1) {
+            _renderSlide(_activeIndex + 1);
+            _startTimer();
+          } else {
+            handleCloseDetails();
+          }
+        }
+
+        function previous() {
+          if (_activeIndex > 0) {
+            _renderSlide(_activeIndex - 1);
+            _startTimer();
+          }
+        }
+
+        return { open, close, isOpen, next, previous };
       })();
 
       function handleOpenDetails() {
