@@ -1715,14 +1715,14 @@
           AppBridge.listenIframeMessages((data) => {
             if (data.event === "ready") {
               _markReady(callbacks);
-              _vimeoMsg({ method: "addEventListener", value: "ended" });
-              _vimeoMsg({ method: "addEventListener", value: "timeupdate" });
+              _vimeoMsg({ method: "addEventListener", value: "finish" });
+              _vimeoMsg({ method: "addEventListener", value: "playProgress" });
               _vimeoMsg({ method: "getDuration" });
             }
             if (data.event === "play") callbacks.onPlay?.();
             if (data.event === "pause") callbacks.onPause?.();
-            if (data.event === "ended") callbacks.onEnded?.();
-            if (data.event === "timeupdate") {
+            if (data.event === "finish") callbacks.onEnded?.();
+            if (data.event === "playProgress") {
               callbacks.onProgress?.({
                 currentTime: Number(data?.data?.seconds ?? 0),
                 duration: Number(data?.data?.duration ?? 0) || undefined,
