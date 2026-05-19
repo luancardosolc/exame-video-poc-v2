@@ -408,6 +408,10 @@
         padding-bottom: calc(16px + env(safe-area-inset-bottom));
         z-index: 31;
         pointer-events: none;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
       }
 
       .footer-rail {
@@ -677,13 +681,6 @@
             <div class="story-pill-overlay"></div>
             <span class="story-pill-title" id="story-pill-title"></span>
           </div>
-          <div
-            class="badge-live"
-            id="badge-live"
-            aria-label="Transmissão ao vivo"
-          >
-            <span class="dot"></span>AO VIVO
-          </div>
         </div>
 
         <!-- Controles do player -->
@@ -710,6 +707,13 @@
 
         <!-- Footer -->
         <div class="overlay-footer">
+          <div
+            class="badge-live"
+            id="badge-live"
+            aria-label="Transmissão ao vivo"
+          >
+            <span class="dot"></span>AO VIVO
+          </div>
           <div class="footer-rail">
             <div class="footer-rail-line"></div>
             <div class="footer-rail-content">
