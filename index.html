@@ -411,13 +411,35 @@
         pointer-events: none;
       }
 
+      .footer-rail {
+        display: flex;
+        flex-direction: row;
+        gap: 16px;
+        width: 100%;
+      }
+
+      .footer-rail-line {
+        width: 2px;
+        flex-shrink: 0;
+        align-self: stretch;
+        background-color: #e01c23;
+        border-radius: 1px;
+      }
+
+      .footer-rail-content {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
       .video-eyebrow {
         color: rgba(255, 255, 255, 0.55);
         font-size: 11px;
         font-weight: 600;
         letter-spacing: 0.08em;
         text-transform: uppercase;
-        margin-bottom: 4px;
         text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
       }
 
@@ -425,7 +447,6 @@
         color: #fff;
         font-size: 16px;
         font-weight: 700;
-        margin-bottom: 4px;
         text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
         line-height: 1.35;
       }
@@ -434,7 +455,6 @@
         color: rgba(255, 255, 255, 0.75);
         font-size: 13px;
         font-weight: 500;
-        margin-bottom: 6px;
         text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
       }
 
@@ -442,7 +462,6 @@
         color: rgba(255, 255, 255, 0.65);
         font-size: 12px;
         line-height: 1.55;
-        margin-bottom: 14px;
         text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
         display: -webkit-box;
         -webkit-line-clamp: 3;
@@ -732,16 +751,21 @@
 
         <!-- Footer -->
         <div class="overlay-footer">
-          <p class="video-eyebrow" id="overlay-eyebrow"></p>
-          <p class="video-title" id="overlay-title"></p>
-          <p class="video-subtitle" id="overlay-subtitle"></p>
-          <p class="video-description" id="overlay-description"></p>
-          <button
-            class="btn-cta"
-            id="btn-cta"
-            style="display: none"
-            data-interactive="true"
-          ></button>
+          <div class="footer-rail">
+            <div class="footer-rail-line"></div>
+            <div class="footer-rail-content">
+              <p class="video-eyebrow" id="overlay-eyebrow"></p>
+              <p class="video-title" id="overlay-title"></p>
+              <p class="video-subtitle" id="overlay-subtitle"></p>
+              <p class="video-description" id="overlay-description"></p>
+              <button
+                class="btn-cta"
+                id="btn-cta"
+                style="display: none"
+                data-interactive="true"
+              ></button>
+            </div>
+          </div>
         </div>
 
         <!-- Reactions -->
