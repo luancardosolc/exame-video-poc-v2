@@ -770,7 +770,7 @@
        ===================================================== */
       #video-progress-track {
         position: absolute;
-        top: var(--sai-top);
+        top: calc(var(--sai-top) + 5px);
         left: 0;
         width: 100%;
         height: 3px;
@@ -1722,6 +1722,7 @@
               callbacks.onProgress?.({
                 currentTime: Number(data?.data?.seconds ?? 0),
                 duration: Number(data?.data?.duration ?? 0) || undefined,
+                percent: typeof data?.data?.percent === "number" ? data.data.percent : undefined,
               });
             }
             if (data.method === "getDuration" && Number(data.value) > 0) {
@@ -2120,10 +2121,14 @@
             AppBridge.send("player:duration", payload);
           },
           onProgress(payload) {
-            if (payload.duration && payload.duration > 0) {
-              VideoProgressBar.setProgress(payload.currentTime / payload.duration);
-            }
-            AppBridge.send("player:progress", payload);
+            const pct =
+              typeof payload.percent === "number" && payload.percent > 0
+                ? payload.percent
+                : payload.duration > 0
+                  ? payload.currentTime / payload.duration
+                  : null;
+            if (pct !== null) VideoProgressBar.setProgress(pct);
+            AppBridge.send("player:progress", { currentTime: payload.currentTime, duration: payload.duration });
           },
           onEnded() {
             State.isPlaying = false;
