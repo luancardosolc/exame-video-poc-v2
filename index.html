@@ -239,6 +239,13 @@
         align-items: center;
         justify-content: center;
         padding: 0 16px;
+        border: none;
+        cursor: pointer;
+        gap: 24px;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .story-pill:disabled {
+        cursor: default;
       }
 
       .story-pill-bg {
@@ -270,9 +277,237 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        max-width: 100%;
+        flex: 1;
+        min-width: 0;
+        text-align: center;
         text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
         letter-spacing: 0.01em;
+      }
+
+      .story-pill-arrow {
+        position: relative;
+        z-index: 1;
+        flex-shrink: 0;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .story-pill-arrow svg {
+        display: block;
+        fill: #f9f9f9;
+      }
+      .story-pill:disabled .story-pill-arrow {
+        display: none;
+      }
+
+      /* =====================================================
+       DETAILS PANEL
+       ===================================================== */
+      #details-panel {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #111;
+        z-index: 70;
+        transform: translateY(100%);
+        transition: transform 0.22s ease-out;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      #details-panel.open {
+        transform: translateY(0);
+      }
+
+      .details-scroll {
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        padding: 0 24px;
+        padding-bottom: calc(24px + var(--sai-bottom));
+      }
+
+      .details-hero {
+        position: relative;
+        min-height: 84px;
+        border-radius: 8px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        padding: 0 24px;
+        margin-top: calc(16px + var(--sai-top));
+        flex-shrink: 0;
+      }
+
+      .details-hero-bg {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background-size: cover;
+        background-position: center;
+      }
+
+      .details-hero-backdrop {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+      }
+
+      .details-back-btn {
+        position: absolute;
+        left: 24px;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: none;
+        border: none;
+        color: #fff;
+        cursor: pointer;
+        font-size: 22px;
+        z-index: 1;
+        -webkit-tap-highlight-color: transparent;
+        flex-shrink: 0;
+      }
+
+      .details-hero-title {
+        position: relative;
+        z-index: 1;
+        color: #fff;
+        font-size: 22px;
+        font-weight: 600;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 75%;
+      }
+
+      .details-pagination {
+        display: flex;
+        flex-direction: row;
+        gap: 16px;
+        flex-shrink: 0;
+      }
+
+      .details-pag-bar {
+        flex: 1;
+        height: 4px;
+        border-radius: 2px;
+        background: #333;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        -webkit-tap-highlight-color: transparent;
+        transition: background 0.15s;
+      }
+      .details-pag-bar.active {
+        background: #fff;
+      }
+
+      .details-summary-block {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        flex-shrink: 0;
+      }
+
+      .details-title {
+        color: #fff;
+        font-size: 22px;
+        font-weight: 600;
+        line-height: 1.3;
+      }
+
+      .details-author-row {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .details-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex-shrink: 0;
+      }
+
+      .details-avatar-fallback {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #e01c23;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 16px;
+        font-weight: 700;
+        color: #fff;
+      }
+
+      .details-author-text {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        max-width: 160px;
+      }
+
+      .details-author-name {
+        color: #fff;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .details-author-role {
+        color: #ccc;
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: 0.05em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .details-body {
+        color: #999;
+        font-size: 12px;
+        line-height: 1.65;
+        letter-spacing: 0.03em;
+        flex-shrink: 0;
+      }
+
+      .details-return-btn {
+        flex-shrink: 0;
+        min-height: 36px;
+        border-radius: 100px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #333;
+        background: none;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
       }
 
       .btn-close {
@@ -680,11 +915,23 @@
           >
             ✕
           </button>
-          <div class="story-pill" id="story-pill">
+          <button
+            class="story-pill"
+            id="story-pill"
+            onclick="handleOpenDetails()"
+            aria-label="Ver detalhes do story"
+            data-interactive="true"
+            disabled
+          >
             <div class="story-pill-bg" id="story-pill-bg"></div>
             <div class="story-pill-overlay"></div>
             <span class="story-pill-title" id="story-pill-title"></span>
-          </div>
+            <span class="story-pill-arrow" id="story-pill-arrow">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+                <path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/>
+              </svg>
+            </span>
+          </button>
         </div>
 
         <!-- Footer -->
@@ -751,6 +998,42 @@
           aria-hidden="true"
           onclick="handleStoryNavigationTap(event, 'next')"
         ></button>
+      </div>
+    </div>
+
+    <!-- DETAILS PANEL -->
+    <div id="details-panel" aria-hidden="true">
+      <div class="details-scroll" id="details-scroll">
+        <!-- hero -->
+        <div class="details-hero" id="details-hero">
+          <div class="details-hero-bg" id="details-hero-bg"></div>
+          <div class="details-hero-backdrop"></div>
+          <button
+            class="details-back-btn"
+            onclick="handleCloseDetails()"
+            aria-label="Voltar ao story"
+          >&#8592;</button>
+          <span class="details-hero-title" id="details-hero-title"></span>
+        </div>
+
+        <!-- paginação (só aparece com 2+ slides) -->
+        <div class="details-pagination" id="details-pagination" style="display:none"></div>
+
+        <!-- título e autor -->
+        <div class="details-summary-block">
+          <p class="details-title" id="details-title"></p>
+          <div class="details-author-row" id="details-author-row" style="display:none"></div>
+        </div>
+
+        <!-- corpo do slide ativo -->
+        <p class="details-body" id="details-body"></p>
+
+        <!-- botão voltar -->
+        <button
+          class="details-return-btn"
+          onclick="handleCloseDetails()"
+          aria-label="Voltar ao story"
+        >Voltar ao story</button>
       </div>
     </div>
 
@@ -986,6 +1269,26 @@
             );
           }
 
+          const rawDetails = raw.details;
+          const detailsSlides = Array.isArray(rawDetails?.slides)
+            ? rawDetails.slides.map((s) => ({
+                id: typeof s.id === "string" ? s.id : "",
+                plainText: typeof s.plainText === "string" ? s.plainText : "",
+              }))
+            : [];
+          const detailsAuthor =
+            rawDetails?.author?.name
+              ? {
+                  name: String(rawDetails.author.name),
+                  role: rawDetails.author.role
+                    ? String(rawDetails.author.role)
+                    : undefined,
+                  avatarUrl: rawDetails.author.avatarUrl
+                    ? String(rawDetails.author.avatarUrl)
+                    : undefined,
+                }
+              : undefined;
+
           return {
             version: 1,
             story: {
@@ -1024,6 +1327,16 @@
               badge: raw.overlay?.badge ?? "",
               showLiveBadge: raw.overlay?.showLiveBadge === true,
             },
+            details: detailsSlides.length
+              ? {
+                  slides: detailsSlides,
+                  author: detailsAuthor,
+                  headerImageUrl:
+                    typeof rawDetails?.headerImageUrl === "string"
+                      ? rawDetails.headerImageUrl
+                      : undefined,
+                }
+              : null,
             behavior: {
               startFullscreen: raw.behavior?.startFullscreen === true,
               allowFullscreenToggle:
@@ -1719,6 +2032,9 @@
             ? ""
             : "none";
 
+        const pillBtn = document.getElementById("story-pill");
+        if (pillBtn) pillBtn.disabled = !payload.details;
+
         const resolvedAspectRatio = await MediaMetadata.resolveAspectRatio(
           payload.media,
         );
@@ -1941,6 +2257,161 @@
         if (btn) btn.innerHTML = State.isMuted ? _SVG_MUTED : _SVG_UNMUTED;
       }
 
+
+      const DetailsPanel = (function () {
+        let _details = null;
+        let _activeIndex = 0;
+
+        function _setVisible(id, show) {
+          const el = document.getElementById(id);
+          if (el) el.style.display = show ? "" : "none";
+        }
+
+        function _renderSlide(index) {
+          _activeIndex = index;
+          const slides = _details?.slides ?? [];
+          const slide = slides[Math.min(index, slides.length - 1)];
+
+          const bodyEl = document.getElementById("details-body");
+          if (bodyEl) {
+            const text = slide?.plainText ?? "";
+            bodyEl.textContent = text;
+            bodyEl.style.display = text.trim() ? "" : "none";
+          }
+
+          const pagEl = document.getElementById("details-pagination");
+          if (pagEl) {
+            const bars = pagEl.querySelectorAll(".details-pag-bar");
+            bars.forEach((bar, i) => {
+              bar.classList.toggle("active", i === index);
+            });
+          }
+        }
+
+        function _buildPagination(slides) {
+          const pagEl = document.getElementById("details-pagination");
+          if (!pagEl) return;
+          pagEl.innerHTML = "";
+          if (slides.length < 2) {
+            pagEl.style.display = "none";
+            return;
+          }
+          slides.forEach((_, i) => {
+            const btn = document.createElement("button");
+            btn.className = "details-pag-bar" + (i === 0 ? " active" : "");
+            btn.setAttribute("aria-label", `Abrir detalhe ${i + 1}`);
+            btn.setAttribute("data-interactive", "true");
+            btn.addEventListener("click", () => _renderSlide(i));
+            pagEl.appendChild(btn);
+          });
+          pagEl.style.display = "flex";
+        }
+
+        function _buildAuthor(author) {
+          const rowEl = document.getElementById("details-author-row");
+          if (!rowEl) return;
+          if (!author?.name) {
+            rowEl.style.display = "none";
+            return;
+          }
+          rowEl.innerHTML = "";
+          if (author.avatarUrl) {
+            const img = document.createElement("img");
+            img.className = "details-avatar";
+            img.src = author.avatarUrl;
+            img.alt = author.name;
+            rowEl.appendChild(img);
+          } else {
+            const fallback = document.createElement("div");
+            fallback.className = "details-avatar-fallback";
+            fallback.textContent = author.name.charAt(0).toUpperCase();
+            rowEl.appendChild(fallback);
+          }
+          const textBlock = document.createElement("div");
+          textBlock.className = "details-author-text";
+          const nameEl = document.createElement("span");
+          nameEl.className = "details-author-name";
+          nameEl.textContent = author.name;
+          textBlock.appendChild(nameEl);
+          if (author.role) {
+            const roleEl = document.createElement("span");
+            roleEl.className = "details-author-role";
+            roleEl.textContent = author.role;
+            textBlock.appendChild(roleEl);
+          }
+          rowEl.appendChild(textBlock);
+          rowEl.style.display = "flex";
+        }
+
+        function open(details, storyTitle) {
+          _details = details;
+          _activeIndex = 0;
+
+          const heroBg = document.getElementById("details-hero-bg");
+          if (heroBg) {
+            heroBg.style.backgroundImage = details.headerImageUrl
+              ? `url("${details.headerImageUrl.replace(/"/g, "%22")}")`
+              : "";
+          }
+
+          const heroTitle = document.getElementById("details-hero-title");
+          if (heroTitle) heroTitle.textContent = storyTitle ?? "";
+
+          const titleEl = document.getElementById("details-title");
+          if (titleEl) titleEl.textContent = storyTitle ?? "";
+
+          _buildAuthor(details.author);
+          _buildPagination(details.slides);
+          _renderSlide(0);
+
+          const panel = document.getElementById("details-panel");
+          if (panel) {
+            panel.removeAttribute("aria-hidden");
+            panel.classList.add("open");
+          }
+
+          const scrollEl = document.getElementById("details-scroll");
+          if (scrollEl) scrollEl.scrollTop = 0;
+
+          Logger.log("details panel aberto");
+        }
+
+        function close() {
+          const panel = document.getElementById("details-panel");
+          if (panel) {
+            panel.setAttribute("aria-hidden", "true");
+            panel.classList.remove("open");
+          }
+          _details = null;
+          Logger.log("details panel fechado");
+        }
+
+        return { open, close };
+      })();
+
+      function handleOpenDetails() {
+        const details = State.payload?.details;
+        if (!details) return;
+        PlayerFactory.pause();
+        State.isPlaying = false;
+        _updateBtnPlay();
+        DetailsPanel.open(details, State.payload?.overlay?.title ?? State.payload?.story?.title);
+        AppBridge.send("analytics", {
+          event: "story_details_opened",
+          data: { storyId: State.payload?.story?.id, storySlug: State.payload?.story?.slug },
+        });
+      }
+
+      function handleCloseDetails() {
+        DetailsPanel.close();
+        PlayerFactory.play();
+        State.isPlaying = true;
+        _updateBtnPlay();
+        AppBridge.send("analytics", {
+          event: "story_details_closed",
+          data: { storyId: State.payload?.story?.id, storySlug: State.payload?.story?.slug },
+        });
+      }
 
       let _toastTimer;
       function showToast(msg) {
