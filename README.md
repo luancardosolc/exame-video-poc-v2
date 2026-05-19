@@ -8,31 +8,31 @@ Evolução da [exame-video-poc](../exame-video-poc) (v1), que usava uma lista ha
 
 ## O que esta POC valida
 
-| Validação | Status |
-|-----------|--------|
-| Receber payload via `injectJavaScript` (base64url) | ✅ |
-| Receber payload via `?payload=<base64url>` (browser) | ✅ |
-| Validar e normalizar payload com defaults | ✅ |
-| Renderizar player YouTube (vídeo e live) | ✅ |
-| Renderizar player Vimeo | ✅ |
-| Renderizar arquivo MP4 direto do WordPress | ✅ |
-| Fit adaptativo via `VideoCover.resize()` (contain para vídeo paisagem em retrato, cover nos demais casos) | ✅ |
-| Aspect ratio real para Vimeo via oEmbed, com fallback para o payload | ✅ |
-| Overlays com dados do payload (title, subtitle, badge, CTA) | ✅ |
-| Badge AO VIVO com animação pulse | ✅ |
-| Botão CTA enviando evento `analytics` ao app | ✅ |
-| Fake fullscreen sem `requestFullscreen()` | ✅ |
-| Eventos estruturados web → app | ✅ |
-| Evento `ready` no init | ✅ |
-| Eventos `player:ready`, `player:play`, `player:pause`, `player:error` | ✅ |
-| Eventos `fullscreen:enter`, `fullscreen:exit`, `close` | ✅ |
-| Overlay de erro para payload inválido | ✅ |
-| Fallback de autoplay bloqueado | ✅ |
-| Reactions animados (apenas em lives) | ✅ |
-| Safe areas (notch / Dynamic Island) | ✅ |
-| `100dvh` para evitar bug Safari iOS | ✅ |
-| Frame desktop (390×844) para testar no browser | ✅ |
-| `body.in-webview` detectado automaticamente | ✅ |
+| Validação                                                                                                                   | Status |
+| --------------------------------------------------------------------------------------------------------------------------- | ------ |
+| Receber payload via `injectJavaScript` (base64url)                                                                          | ✅     |
+| Receber payload via `?payload=<base64url>` (browser)                                                                        | ✅     |
+| Validar e normalizar payload com defaults                                                                                   | ✅     |
+| Renderizar player YouTube (vídeo e live)                                                                                    | ✅     |
+| Renderizar player Vimeo                                                                                                     | ✅     |
+| Renderizar arquivo MP4 direto do WordPress                                                                                  | ✅     |
+| Fit adaptativo via `VideoCover.resize()` (contain para vídeo paisagem em retrato, cover nos demais casos)                   | ✅     |
+| Aspect ratio real para Vimeo via oEmbed, com fallback para o payload                                                        | ✅     |
+| Overlays com dados do payload (title, subtitle, badge, CTA)                                                                 | ✅     |
+| Badge AO VIVO com animação pulse                                                                                            | ✅     |
+| Botão CTA enviando evento `analytics` ao app                                                                                | ✅     |
+| Fake fullscreen sem `requestFullscreen()`                                                                                   | ✅     |
+| Eventos estruturados web → app                                                                                              | ✅     |
+| Evento `ready` no init                                                                                                      | ✅     |
+| Eventos `player:ready`, `player:play`, `player:pause`, `player:duration`, `player:progress`, `player:ended`, `player:error` | ✅     |
+| Eventos `fullscreen:enter`, `fullscreen:exit`, `close`                                                                      | ✅     |
+| Overlay de erro para payload inválido                                                                                       | ✅     |
+| Fallback de autoplay bloqueado                                                                                              | ✅     |
+| Reactions animados (apenas em lives)                                                                                        | ✅     |
+| Safe areas (notch / Dynamic Island)                                                                                         | ✅     |
+| `100dvh` para evitar bug Safari iOS                                                                                         | ✅     |
+| Frame desktop (390×844) para testar no browser                                                                              | ✅     |
+| `body.in-webview` detectado automaticamente                                                                                 | ✅     |
 
 ---
 
@@ -63,34 +63,39 @@ Passe o payload como query param `?payload=<base64url>`:
 const payload = {
   version: 1,
   story: {
-    id: '1',
-    slug: 'big-buck-bunny',
-    title: 'Big Buck Bunny',
-    author: 'Blender Foundation',
+    id: "1",
+    slug: "big-buck-bunny",
+    title: "Big Buck Bunny",
+    author: "Blender Foundation",
   },
   media: {
-    provider: 'youtube',
-    videoId: 'aqz-KE-bpKQ',
-    aspectRatio: '16:9',
+    provider: "youtube",
+    videoId: "aqz-KE-bpKQ",
+    aspectRatio: "16:9",
     autoplay: true,
     muted: true,
   },
   overlay: {
-    title: 'Big Buck Bunny',
-    subtitle: '@Blender Foundation',
-    description: 'Curta-metragem de animação 3D de domínio público.',
+    title: "Big Buck Bunny",
+    subtitle: "@Blender Foundation",
+    description: "Curta-metragem de animação 3D de domínio público.",
     showLiveBadge: false,
-    ctaLabel: 'Saiba Mais',
-    ctaUrl: 'https://example.com',
+    ctaLabel: "Saiba Mais",
+    ctaUrl: "https://example.com",
   },
   behavior: { showDebug: true },
 };
 
 const bytes = new TextEncoder().encode(JSON.stringify(payload));
-let binary = '';
-bytes.forEach(b => { binary += String.fromCharCode(b); });
-const encoded = btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-console.log(location.origin + location.pathname + '?payload=' + encoded);
+let binary = "";
+bytes.forEach((b) => {
+  binary += String.fromCharCode(b);
+});
+const encoded = btoa(binary)
+  .replace(/\+/g, "-")
+  .replace(/\//g, "_")
+  .replace(/=+$/, "");
+console.log(location.origin + location.pathname + "?payload=" + encoded);
 ```
 
 Cole a URL gerada no browser. Com `behavior.showDebug: true`, os logs aparecem no console do DevTools.
@@ -98,16 +103,19 @@ Cole a URL gerada no browser. Com `behavior.showDebug: true`, os logs aparecem n
 ### Payloads de exemplo rápidos
 
 **YouTube normal (16:9):**
+
 ```
 http://localhost:8080/?payload=eyJ2ZXJzaW9uIjoxLCJzdG9yeSI6eyJpZCI6IjEiLCJzbHVnIjoiYmlnLWJ1Y2stYnVubnkiLCJ0aXRsZSI6IkJpZyBCdWNrIEJ1bm55In0sIm1lZGlhIjp7InByb3ZpZGVyIjoieW91dHViZSIsInZpZGVvSWQiOiJhcXotS0UtYnBLUSIsImFzcGVjdFJhdGlvIjoiMTY6OSJ9LCJvdmVybGF5Ijp7InRpdGxlIjoiQmlnIEJ1Y2sgQnVubnkiLCJzdWJ0aXRsZSI6IkBCbGVuZGVyIn0sImJlaGF2aW9yIjp7InNob3dEZWJ1ZyI6dHJ1ZX19
 ```
 
 **YouTube Live (badge AO VIVO + reactions):**
+
 ```
 http://localhost:8080/?payload=eyJ2ZXJzaW9uIjoxLCJzdG9yeSI6eyJpZCI6IjIiLCJzbHVnIjoibG9maS1saXZlIiwidGl0bGUiOiJsb2ZpIGhpcCBob3AgcmFkaW8ifSwibWVkaWEiOnsicHJvdmlkZXIiOiJ5b3V0dWJlX2xpdmUiLCJ2aWRlb0lkIjoiamZLZlBmeUpSZGsiLCJhc3BlY3RSYXRpbyI6IjE2OjkifSwib3ZlcmxheSI6eyJ0aXRsZSI6ImxvZmkgaGlwIGhvcCByYWRpbyIsInN1YnRpdGxlIjoiQExvZmlHaXJsIOKAoiBBTyBWSVZPIiwic2hvd0xpdmVCYWRnZSI6dHJ1ZX0sImJlaGF2aW9yIjp7InNob3dEZWJ1ZyI6dHJ1ZX19
 ```
 
 **Vimeo:**
+
 ```
 http://localhost:8080/?payload=eyJ2ZXJzaW9uIjoxLCJzdG9yeSI6eyJpZCI6IjMiLCJzbHVnIjoidmltZW8tZGVtbyIsInRpdGxlIjoiVmltZW8gRGVtbyJ9LCJtZWRpYSI6eyJwcm92aWRlciI6InZpbWVvIiwidmlkZW9JZCI6IjgyNDgwNDIyNSIsImFzcGVjdFJhdGlvIjoiMTY6OSJ9LCJvdmVybGF5Ijp7InRpdGxlIjoiVmltZW8gRGVtbyIsInN1YnRpdGxlIjoiQFZpbWVvIFN0YWZmIFBpY2sifSwiYmVoYXZpb3IiOnsic2hvd0RlYnVnIjp0cnVlfX0
 ```
@@ -119,17 +127,18 @@ http://localhost:8080/?payload=eyJ2ZXJzaW9uIjoxLCJzdG9yeSI6eyJpZCI6IjMiLCJzbHVnI
 ### 1. Servidor local
 
 No Mac:
+
 ```bash
 python3 -m http.server 8080
 ```
 
 ### 2. URL no app
 
-| Dispositivo | URL |
-|-------------|-----|
-| Emulador Android | `http://10.0.2.2:8080` |
+| Dispositivo        | URL                       |
+| ------------------ | ------------------------- |
+| Emulador Android   | `http://10.0.2.2:8080`    |
 | Dispositivo físico | `http://<IP-do-Mac>:8080` |
-| Produção | URL do Cloudflare Worker |
+| Produção           | URL do Cloudflare Worker  |
 
 Configure em `EXPO_PUBLIC_VIDEO_POC_V2_URL` no `.env.local` do Exame Plus.
 
@@ -173,16 +182,16 @@ TOAST          (z: 60)  — sempre no topo
 
 ## Módulos JS (arquivo único, sem bundler)
 
-| Módulo | Responsabilidade |
-|--------|------------------|
-| `Logger` | `console.log` condicional por `behavior.showDebug` |
-| `AppBridge` | Envia eventos ao app via postMessage; registra `__pocV2LoadStory` |
-| `PayloadCodec` | Encode/decode base64url com suporte a Unicode |
-| `PayloadValidator` | Valida campos obrigatórios, normaliza defaults |
-| `VideoCover` | Calcula dimensões do wrapper do player conforme viewport e proporção do vídeo |
-| `MediaMetadata` | Resolve metadados do provider, como aspect ratio real do Vimeo via oEmbed |
-| `PlayerFactory` | Cria e controla players YouTube (IFrame API), Vimeo (iframe) e arquivo MP4 direto (`<video>`) |
-| `OverlayRenderer` | Popula elementos HTML do overlay via `textContent` |
+| Módulo             | Responsabilidade                                                                              |
+| ------------------ | --------------------------------------------------------------------------------------------- |
+| `Logger`           | `console.log` condicional por `behavior.showDebug`                                            |
+| `AppBridge`        | Envia eventos ao app via postMessage; registra `__pocV2LoadStory`                             |
+| `PayloadCodec`     | Encode/decode base64url com suporte a Unicode                                                 |
+| `PayloadValidator` | Valida campos obrigatórios, normaliza defaults                                                |
+| `VideoCover`       | Calcula dimensões do wrapper do player conforme viewport e proporção do vídeo                 |
+| `MediaMetadata`    | Resolve metadados do provider, como aspect ratio real do Vimeo via oEmbed                     |
+| `PlayerFactory`    | Cria e controla players YouTube (IFrame API), Vimeo (iframe) e arquivo MP4 direto (`<video>`) |
+| `OverlayRenderer`  | Popula elementos HTML do overlay via `textContent`                                            |
 
 ---
 

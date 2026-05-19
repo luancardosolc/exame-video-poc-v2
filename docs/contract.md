@@ -18,6 +18,9 @@ injectJavaScript(
                                   → OverlayRenderer.render()
                           ←── { type: "player:ready" }
                           ←── { type: "player:play" }
+                          ←── { type: "player:duration", payload: { duration } }
+                          ←── { type: "player:progress", payload: { currentTime, duration } }
+                          ←── { type: "player:ended" }
                                ...
 (usuário toca lateral)    ←── { type: "story:navigate", payload: { direction: "next" } }
 app troca o slug do story
@@ -207,6 +210,9 @@ Todos os eventos são enviados como JSON via `window.ReactNativeWebView.postMess
 | `player:ready`     | —                                                                           | Player inicializado e pronto para reprodução                                   |
 | `player:play`      | —                                                                           | Reprodução iniciada ou retomada                                                |
 | `player:pause`     | —                                                                           | Reprodução pausada                                                             |
+| `player:duration`  | `{ duration: number }`                                                      | Duração total conhecida, em segundos                                           |
+| `player:progress`  | `{ currentTime: number, duration?: number }`                                | Progresso de reprodução, em segundos                                           |
+| `player:ended`     | `{ storyId?: string, storySlug?: string }`                                  | Reprodução terminou; o app decide se avança na fila                            |
 | `player:error`     | `{ code: string, message: string }`                                         | Erro no player ou payload inválido                                             |
 | `fullscreen:enter` | —                                                                           | Usuário ativou modo paisagem                                                   |
 | `fullscreen:exit`  | —                                                                           | Usuário saiu do modo paisagem                                                  |
