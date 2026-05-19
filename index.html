@@ -495,38 +495,6 @@
         box-shadow: 0 2px 10px rgba(99, 102, 241, 0.3);
       }
 
-      /* --- Reactions animados --- */
-      #reactions-container {
-        position: absolute;
-        bottom: 120px;
-        right: 60px;
-        width: 60px;
-        pointer-events: none;
-        z-index: 32;
-        overflow: visible;
-      }
-      .reaction {
-        position: absolute;
-        bottom: 0;
-        font-size: 24px;
-        animation: float-up 2.5s ease-out forwards;
-        opacity: 0;
-        user-select: none;
-      }
-      @keyframes float-up {
-        0% {
-          opacity: 1;
-          transform: translateY(0) scale(1);
-        }
-        20% {
-          opacity: 1;
-          transform: translateY(-20px) scale(1.2);
-        }
-        100% {
-          opacity: 0;
-          transform: translateY(-120px) scale(0.8) rotate(15deg);
-        }
-      }
 
       /* =====================================================
        GESTURE LAYER
@@ -707,17 +675,16 @@
 
         <!-- Footer -->
         <div class="overlay-footer">
-          <div
-            class="badge-live"
-            id="badge-live"
-            aria-label="Transmissão ao vivo"
-          >
-            <span class="dot"></span>AO VIVO
-          </div>
           <div class="footer-rail">
             <div class="footer-rail-line"></div>
             <div class="footer-rail-content">
-              <p class="video-eyebrow" id="overlay-eyebrow"></p>
+              <div
+                class="badge-live"
+                id="badge-live"
+                aria-label="Transmissão ao vivo"
+              >
+                <span class="dot"></span>AO VIVO
+              </div>
               <p class="video-title" id="overlay-title"></p>
               <p class="video-subtitle" id="overlay-subtitle"></p>
               <p class="video-description" id="overlay-description"></p>
@@ -730,9 +697,6 @@
             </div>
           </div>
         </div>
-
-        <!-- Reactions -->
-        <div id="reactions-container" aria-hidden="true"></div>
       </div>
 
       <!-- GESTURE LAYER -->
@@ -1560,7 +1524,6 @@
         }
 
         function render(overlay) {
-          _set("overlay-eyebrow", overlay.eyebrow);
           _set("overlay-title", overlay.title);
           _set("overlay-subtitle", overlay.subtitle);
           _set("overlay-description", overlay.description);
@@ -1758,7 +1721,6 @@
         });
 
         if (payload.behavior.startFullscreen) handleFullscreen();
-        if (payload.overlay.showLiveBadge) _startReactions();
       }
 
       function togglePlay() {
@@ -1917,26 +1879,6 @@
         if (btn) btn.textContent = State.isMuted ? "🔇" : "🔊";
       }
 
-      const _EMOJIS = ["❤️", "🔥", "👏", "😍", "🎉", "💜", "⭐", "🚀"];
-      let _reactionTimer = null;
-
-      function _startReactions() {
-        if (_reactionTimer) return;
-        _reactionTimer = setInterval(() => {
-          if (Math.random() > 0.45) _spawnReaction();
-        }, 900);
-      }
-
-      function _spawnReaction() {
-        const container = document.getElementById("reactions-container");
-        if (!container) return;
-        const el = document.createElement("div");
-        el.className = "reaction";
-        el.textContent = _EMOJIS[Math.floor(Math.random() * _EMOJIS.length)];
-        el.style.left = `${Math.random() * 30}px`;
-        container.appendChild(el);
-        el.addEventListener("animationend", () => el.remove());
-      }
 
       let _toastTimer;
       function showToast(msg) {
