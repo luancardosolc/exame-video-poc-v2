@@ -766,6 +766,28 @@
 
 
       /* =====================================================
+       VIDEO PROGRESS BAR
+       ===================================================== */
+      #video-progress-track {
+        position: absolute;
+        top: var(--sai-top);
+        left: 0;
+        width: 100%;
+        height: 3px;
+        background: rgba(255, 255, 255, 0.18);
+        z-index: 52;
+        pointer-events: none;
+      }
+      #video-progress-fill {
+        height: 100%;
+        background: #fff;
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 0.3s linear;
+        will-change: transform;
+      }
+
+      /* =====================================================
        GESTURE LAYER
        ===================================================== */
       #gesture-layer {
@@ -915,6 +937,10 @@
 
       <!-- OVERLAY LAYER -->
       <div id="overlay-layer">
+        <!-- Barra de progresso do vídeo -->
+        <div id="video-progress-track">
+          <div id="video-progress-fill"></div>
+        </div>
         <div class="gradient-top"></div>
         <div class="gradient-bottom"></div>
 
@@ -1207,6 +1233,7 @@
           "youtube",
           "youtube_live",
           "vimeo",
+          "vimeo_live",
           "video_file",
         ]);
 
@@ -1476,7 +1503,7 @@
         }
 
         async function resolveAspectRatio(media) {
-          if (media.provider !== "vimeo") return media.aspectRatio;
+          if (media.provider !== "vimeo" && media.provider !== "vimeo_live") return media.aspectRatio;
 
           return (await _resolveVimeoAspectRatio(media)) ?? media.aspectRatio;
         }
@@ -1818,7 +1845,7 @@
             } else {
               _doCreateYT(args);
             }
-          } else if (media.provider === "vimeo") {
+          } else if (media.provider === "vimeo" || media.provider === "vimeo_live") {
             _doCreateVimeo({ ...media, callbacks });
           } else if (media.provider === "video_file") {
             _watchReady("video_file", callbacks);
@@ -2033,6 +2060,11 @@
           payload.media.videoId,
         );
 
+        VideoProgressBar.configure(
+          payload.media.provider === "youtube_live" || payload.media.provider === "vimeo_live"
+        );
+        VideoProgressBar.reset();
+
         OverlayRenderer.hideError();
         OverlayRenderer.render(payload.overlay);
         OverlayRenderer.renderPill(
@@ -2088,6 +2120,9 @@
             AppBridge.send("player:duration", payload);
           },
           onProgress(payload) {
+            if (payload.duration && payload.duration > 0) {
+              VideoProgressBar.setProgress(payload.currentTime / payload.duration);
+            }
             AppBridge.send("player:progress", payload);
           },
           onEnded() {
@@ -2279,6 +2314,47 @@
       }
 
 
+      const VideoProgressBar = (function () {
+        let _live = false;
+
+        function _track() { return document.getElementById("video-progress-track"); }
+        function _fill()  { return document.getElementById("video-progress-fill"); }
+
+        function configure(isLive) {
+          _live = isLive;
+          const track = _track();
+          if (track) track.style.display = isLive ? "none" : "";
+        }
+
+        function setProgress(pct) {
+          if (_live) return;
+          const fill = _fill();
+          if (fill) fill.style.transform = `scaleX(${Math.max(0, Math.min(1, pct))})`;
+        }
+
+        function reset() {
+          const fill = _fill();
+          if (!fill) return;
+          fill.style.transition = "none";
+          fill.style.transform = "scaleX(0)";
+          fill.offsetWidth; // reflow para garantir que a transition seja desligada antes do reset
+          fill.style.transition = "";
+        }
+
+        function hide() {
+          const track = _track();
+          if (track) track.style.display = "none";
+        }
+
+        function show() {
+          if (_live) return;
+          const track = _track();
+          if (track) track.style.display = "";
+        }
+
+        return { configure, setProgress, reset, hide, show };
+      })();
+
       const DetailsPanel = (function () {
         let _details = null;
         let _activeIndex = 0;
@@ -2464,6 +2540,7 @@
         PlayerFactory.pause();
         State.isPlaying = false;
         _updateBtnPlay();
+        VideoProgressBar.hide();
         DetailsPanel.open(details, State.payload?.overlay?.title ?? State.payload?.story?.title);
         AppBridge.send("analytics", {
           event: "story_details_opened",
@@ -2473,6 +2550,7 @@
 
       function handleCloseDetails() {
         DetailsPanel.close();
+        VideoProgressBar.show();
         PlayerFactory.play();
         State.isPlaying = true;
         _updateBtnPlay();
