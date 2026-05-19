@@ -852,6 +852,39 @@
           "video_file",
         ]);
 
+        function _isYouTubeShortsUrl(input) {
+          if (!input || typeof input !== "string") return false;
+
+          try {
+            const url = new URL(input);
+            const host = url.hostname
+              .replace(/^www\./, "")
+              .replace(/^m\./, "")
+              .toLowerCase();
+
+            return (
+              host === "youtube.com" && /^\/shorts\/[^/?&#]+/.test(url.pathname)
+            );
+          } catch {
+            return false;
+          }
+        }
+
+        function _resolveAspectRatio(raw) {
+          const provider = raw.media?.provider;
+          const aspectRatio = raw.media?.aspectRatio ?? "16:9";
+
+          if (
+            (provider === "youtube" || provider === "youtube_live") &&
+            _isYouTubeShortsUrl(raw.media?.sourceUrl) &&
+            (!raw.media?.aspectRatio || aspectRatio === "16:9")
+          ) {
+            return "9:16";
+          }
+
+          return aspectRatio;
+        }
+
         function validate(raw) {
           if (!raw || typeof raw !== "object") {
             throw new Error("Payload deve ser um objeto JSON válido.");
@@ -914,7 +947,7 @@
                   ? raw.media.sourceUrl.trim()
                   : raw.media.sourceUrl,
               posterUrl: raw.media.posterUrl,
-              aspectRatio: raw.media.aspectRatio ?? "16:9",
+              aspectRatio: _resolveAspectRatio(raw),
               autoplay: raw.media.autoplay !== false,
               muted: raw.media.muted !== false,
               loop: raw.media.loop === true,

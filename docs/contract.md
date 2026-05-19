@@ -96,6 +96,8 @@ type WebStoryVideoPayload = {
 };
 ```
 
+Para YouTube Shorts, o embed continua sendo `https://www.youtube.com/embed/VIDEO_ID`. A diferença é o `media.aspectRatio`, que deve ser enviado como `"9:16"`. A POC também aplica esse fallback quando `media.sourceUrl` contém `/shorts/` e o payload não informa proporção ou ainda chega como `"16:9"`.
+
 ### Campos obrigatórios
 
 | Campo            | Motivo                                                       |
