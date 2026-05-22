@@ -911,6 +911,12 @@
         border-radius: 0;
         box-shadow: none;
       }
+
+      body.knowledge-pill-mode .overlay-footer,
+      body.knowledge-pill-mode #gesture-layer,
+      body.knowledge-pill-mode .story-pill {
+        display: none;
+      }
     </style>
   </head>
   <body>
@@ -1120,6 +1126,17 @@
           }
         }
 
+        function sendRaw(payload) {
+          Logger.log("→ app", payload);
+          try {
+            if (window.ReactNativeWebView) {
+              window.ReactNativeWebView.postMessage(JSON.stringify(payload));
+            }
+          } catch (e) {
+            Logger.error("AppBridge.sendRaw failed", e);
+          }
+        }
+
         function listenIframeMessages(handler) {
           function listener(event) {
             const isKnownPlayer =
@@ -1158,6 +1175,7 @@
         return {
           isInWebView: () => Boolean(window.ReactNativeWebView),
           send,
+          sendRaw,
           listenIframeMessages,
           stopListeningIframeMessages,
           registerEntrypoint,
@@ -1362,6 +1380,14 @@
               autoplay: raw.media.autoplay !== false,
               muted: raw.media.muted !== false,
               loop: raw.media.loop === true,
+              vimeoHash:
+                typeof raw.media.vimeoHash === "string"
+                  ? raw.media.vimeoHash.trim()
+                  : "",
+              startAt:
+                typeof raw.media.startAt === "number" && Number.isFinite(raw.media.startAt)
+                  ? Math.max(0, Math.floor(raw.media.startAt))
+                  : 0,
             },
             overlay: {
               eyebrow: raw.overlay?.eyebrow ?? "",
@@ -1388,6 +1414,7 @@
               allowFullscreenToggle:
                 raw.behavior?.allowFullscreenToggle !== false,
               showDebug: raw.behavior?.showDebug === true,
+              knowledgePillMode: raw.behavior?.knowledgePillMode === true,
             },
             theme: {
               mode: raw.theme?.mode ?? "dark",
@@ -1691,7 +1718,7 @@
           }, 300);
         }
 
-        function _doCreateVimeo({ videoId, autoplay, muted, loop, callbacks }) {
+        function _doCreateVimeo({ videoId, autoplay, muted, loop, vimeoHash, startAt, callbacks }) {
           const wrapper = document.getElementById("video-wrapper");
           if (!wrapper) return;
 
@@ -1707,6 +1734,7 @@
             quality: "auto",
             dnt: "1",
           });
+          if (vimeoHash) params.set("h", vimeoHash);
 
           wrapper.innerHTML = `<iframe
       id="vimeo-iframe"
@@ -1722,8 +1750,13 @@
             if (data.event === "ready") {
               _markReady(callbacks);
               _vimeoMsg({ method: "addEventListener", value: "finish" });
+              _vimeoMsg({ method: "addEventListener", value: "play" });
+              _vimeoMsg({ method: "addEventListener", value: "pause" });
               _vimeoMsg({ method: "addEventListener", value: "playProgress" });
               _vimeoMsg({ method: "getDuration" });
+              if (Number(startAt) > 0) {
+                _vimeoMsg({ method: "setCurrentTime", value: Number(startAt) });
+              }
             }
             if (data.event === "play") callbacks.onPlay?.();
             if (data.event === "pause") callbacks.onPause?.();
@@ -1739,6 +1772,7 @@
               callbacks.onDuration?.({ duration: Number(data.value) });
             }
             if (data.event === "error") {
+              _clearReadyTimer();
               callbacks.onError?.({
                 code: "VIMEO_PLAYER_ERROR",
                 message: data?.data?.message ?? "Vimeo player error.",
@@ -2013,7 +2047,26 @@
         isPlaying: true,
         isFullscreen: false,
         startToken: 0,
+        currentTime: 0,
+        duration: 0,
       };
+
+      function isKnowledgePillMode() {
+        return State.payload?.behavior?.knowledgePillMode === true;
+      }
+
+      function sendKnowledgePillEvent(type, payload) {
+        const slug = State.payload?.story?.slug ?? "";
+        AppBridge.sendRaw({
+          type,
+          slug,
+          progress: Math.max(0, Math.floor(Number(payload?.currentTime ?? payload?.progress ?? 0) || 0)),
+          duration: Math.max(0, Math.floor(Number(payload?.duration ?? 0) || 0)),
+          status: type === "VIDEO_COMPLETED" ? "done" : "in_progress",
+          ...(payload?.message ? { message: payload.message } : {}),
+          ...(payload?.code ? { code: payload.code } : {}),
+        });
+      }
 
       function __handlePayload(encoded) {
         Logger.log("payload recebido (base64url)");
@@ -2062,6 +2115,9 @@
         State.payload = payload;
         State.isMuted = payload.media.muted;
         State.isPlaying = payload.media.autoplay;
+        State.currentTime = 0;
+        State.duration = 0;
+        document.body.classList.toggle("knowledge-pill-mode", payload.behavior.knowledgePillMode);
 
         if (payload.behavior.showDebug) Logger.enable();
         Logger.log(
@@ -2113,24 +2169,39 @@
           onReady() {
             if (didFailBeforeReady) return;
             Logger.log("player:ready");
-            AppBridge.send("player:ready");
+            if (isKnowledgePillMode()) {
+              sendKnowledgePillEvent("PLAYER_READY");
+            } else {
+              AppBridge.send("player:ready");
+            }
             _updateBtnPlay();
             _updateBtnMute();
           },
           onPlay() {
             State.isPlaying = true;
             _updateBtnPlay();
-            AppBridge.send("player:play");
+            if (isKnowledgePillMode()) {
+              sendKnowledgePillEvent("VIDEO_STARTED");
+            } else {
+              AppBridge.send("player:play");
+            }
           },
           onPause() {
             State.isPlaying = false;
             _updateBtnPlay();
-            AppBridge.send("player:pause");
+            if (isKnowledgePillMode()) {
+              sendKnowledgePillEvent("VIDEO_PAUSED");
+            } else {
+              AppBridge.send("player:pause");
+            }
           },
           onDuration(payload) {
-            AppBridge.send("player:duration", payload);
+            State.duration = Math.max(0, Number(payload.duration) || 0);
+            if (!isKnowledgePillMode()) AppBridge.send("player:duration", payload);
           },
           onProgress(payload) {
+            State.currentTime = Math.max(0, Number(payload.currentTime) || 0);
+            State.duration = Math.max(State.duration, Number(payload.duration) || 0);
             const pct =
               typeof payload.percent === "number" && payload.percent > 0
                 ? payload.percent
@@ -2138,15 +2209,26 @@
                   ? payload.currentTime / payload.duration
                   : null;
             if (pct !== null) VideoProgressBar.setProgress(pct);
-            AppBridge.send("player:progress", { currentTime: payload.currentTime, duration: payload.duration });
+            if (isKnowledgePillMode()) {
+              sendKnowledgePillEvent("VIDEO_PROGRESS", payload);
+            } else {
+              AppBridge.send("player:progress", { currentTime: payload.currentTime, duration: payload.duration });
+            }
           },
           onEnded() {
             State.isPlaying = false;
             _updateBtnPlay();
-            AppBridge.send("player:ended", {
-              storyId: State.payload?.story.id,
-              storySlug: State.payload?.story.slug,
-            });
+            if (isKnowledgePillMode()) {
+              sendKnowledgePillEvent("VIDEO_COMPLETED", {
+                currentTime: State.duration || State.currentTime,
+                duration: State.duration || State.currentTime,
+              });
+            } else {
+              AppBridge.send("player:ended", {
+                storyId: State.payload?.story.id,
+                storySlug: State.payload?.story.slug,
+              });
+            }
           },
           onError(e) {
             didFailBeforeReady = true;
@@ -2155,7 +2237,14 @@
               "Vídeo indisponível",
               "Não foi possível carregar este vídeo no momento.",
             );
-            AppBridge.send("player:error", e);
+            if (isKnowledgePillMode()) {
+              sendKnowledgePillEvent("PLAYER_ERROR", {
+                code: e?.code ?? "PLAYER_ERROR",
+                message: e?.message ?? "Falha ao carregar player.",
+              });
+            } else {
+              AppBridge.send("player:error", e);
+            }
           },
         });
 
@@ -2203,7 +2292,14 @@
           State.isFullscreen = false;
           AppBridge.send("fullscreen:exit");
         }
-        AppBridge.send("close");
+        if (isKnowledgePillMode()) {
+          sendKnowledgePillEvent("PLAYER_CLOSED", {
+            currentTime: State.currentTime,
+            duration: State.duration,
+          });
+        } else {
+          AppBridge.send("close");
+        }
         Logger.log("close");
       }
 
@@ -2592,6 +2688,94 @@
         if (State.payload) VideoCover.resize(State.payload.media.aspectRatio);
       });
 
+      const KnowledgePillMode = (function () {
+        function parseVimeoUrl(input) {
+          if (!input || typeof input !== "string") {
+            throw new Error("videoUrl é obrigatório.");
+          }
+
+          const url = new URL(input);
+          const host = url.hostname.replace(/^www\./, "").toLowerCase();
+          if (host !== "vimeo.com" && host !== "player.vimeo.com") {
+            throw new Error("videoUrl deve ser uma URL do Vimeo.");
+          }
+
+          const parts = url.pathname.split("/").filter(Boolean);
+          const videoId =
+            host === "player.vimeo.com" && parts[0] === "video"
+              ? parts[1]
+              : parts[0];
+          const pathHash =
+            host === "player.vimeo.com" && parts[0] === "video"
+              ? parts[2]
+              : parts[1];
+          const vimeoHash = url.searchParams.get("h") || pathHash || "";
+
+          if (!videoId || !/^\d+$/.test(videoId)) {
+            throw new Error("ID do Vimeo não encontrado na videoUrl.");
+          }
+
+          return { videoId, vimeoHash };
+        }
+
+        function createPayload() {
+          const params = new URLSearchParams(window.location.search);
+          const slug = params.get("slug") || "knowledge-pill";
+          const videoUrl = params.get("videoUrl") || "";
+          const startAt = Number(params.get("startAt") || 0);
+          const vimeo = parseVimeoUrl(videoUrl);
+
+          return {
+            version: 1,
+            story: {
+              id: slug,
+              slug,
+              title: "Pílula de conteúdo",
+            },
+            media: {
+              provider: "vimeo",
+              videoId: vimeo.videoId,
+              sourceUrl: videoUrl,
+              vimeoHash: vimeo.vimeoHash,
+              startAt: Number.isFinite(startAt) && startAt > 0 ? Math.floor(startAt) : 0,
+              aspectRatio: "16:9",
+              autoplay: true,
+              muted: false,
+              loop: false,
+            },
+            overlay: {
+              title: "",
+            },
+            behavior: {
+              allowFullscreenToggle: false,
+              knowledgePillMode: true,
+            },
+          };
+        }
+
+        function init() {
+          try {
+            const payload = createPayload();
+            const encoded = PayloadCodec.encode(payload);
+            __handlePayload(encoded);
+          } catch (e) {
+            const message = e?.message ?? "Falha ao preparar vídeo da pílula.";
+            OverlayRenderer.showError("Vídeo indisponível", message);
+            AppBridge.sendRaw({
+              type: "PLAYER_ERROR",
+              slug: new URLSearchParams(window.location.search).get("slug") || "",
+              progress: 0,
+              duration: 0,
+              status: "in_progress",
+              code: "VIMEO_LOAD_ERROR",
+              message,
+            });
+          }
+        }
+
+        return { init };
+      })();
+
       function init() {
         if (AppBridge.isInWebView()) {
           document.body.classList.add("in-webview");
@@ -2599,6 +2783,13 @@
 
         AppBridge.registerEntrypoint(__handlePayload);
         setupStoryNavigationSwipe();
+
+        const mode = new URLSearchParams(window.location.search).get("mode");
+        if (mode === "knowledge-pill") {
+          Logger.log("modo knowledge-pill via query param");
+          KnowledgePillMode.init();
+          return;
+        }
 
         const paramEncoded = new URLSearchParams(window.location.search).get(
           "payload",
