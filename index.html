@@ -321,7 +321,7 @@
         user-select: none;
         -webkit-user-select: none;
       }
-      .details-pag-bar.paused::after {
+      .details-pag-bar.active.paused::after {
         animation-play-state: paused;
       }
       #details-panel.open {
@@ -3000,6 +3000,7 @@
         var _isHolding = false;
         var _holdTimer = null;
         const HOLD_MS = 200;
+        const MOVE_THRESHOLD = 10;
 
         function _cancelHold() {
           if (_holdTimer) { clearTimeout(_holdTimer); _holdTimer = null; }
@@ -3009,7 +3010,6 @@
           }
         }
 
-        // Detecta início do toque em qualquer parte do painel
         panel.addEventListener("touchstart", function (e) {
           if (!DetailsPanel.isOpen()) return;
           _startX = e.touches[0].clientX;
@@ -3022,19 +3022,30 @@
           }, HOLD_MS);
         }, { passive: true });
 
-        // Scroll cancela o hold timer (mas mantém pausado se já estava)
+        // Cancela hold se o dedo se mover além do threshold (mais robusto que depender só de scroll)
+        panel.addEventListener("touchmove", function (e) {
+          if (!_holdTimer) return;
+          var dx = Math.abs(e.touches[0].clientX - _startX);
+          var dy = Math.abs(e.touches[0].clientY - _startY);
+          if (dx > MOVE_THRESHOLD || dy > MOVE_THRESHOLD) {
+            clearTimeout(_holdTimer);
+            _holdTimer = null;
+            _didScroll = true;
+          }
+        }, { passive: true });
+
+        // Scroll cancela o hold timer como salvaguarda secundária
         scrollEl.addEventListener("scroll", function () {
           _didScroll = true;
           if (_holdTimer) { clearTimeout(_holdTimer); _holdTimer = null; }
         }, { passive: true });
 
-        // Fim do toque: resume se estava holding; caso contrário testa tap lateral no corpo
         panel.addEventListener("touchend", function (e) {
           var wasHolding = _isHolding;
           _cancelHold();
           if (wasHolding) return;
           if (!DetailsPanel.isOpen() || _didScroll) return;
-          if (!scrollEl.contains(e.target)) return; // tap lateral só no corpo
+          if (!scrollEl.contains(e.target)) return;
           var touch = e.changedTouches[0];
           var dx = Math.abs(touch.clientX - _startX);
           var dy = Math.abs(touch.clientY - _startY);
