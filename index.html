@@ -9,6 +9,15 @@
     />
     <link rel="icon" href="data:," />
     <title>Video Story — Exame Plus POC v2</title>
+    <script
+      src="https://js.sentry-cdn.com/c14c30ea65fa8159dba4fe4f08cf9c09.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script>
+      Sentry.onLoad(function () {
+        Sentry.init({ tracesSampleRate: 0, environment: 'production' });
+      });
+    </script>
     <style>
       /* =====================================================
        RESET
@@ -1188,6 +1197,10 @@
           },
           error(...a) {
             console.error("[poc-v2]", ...a);
+            try {
+              const err = a[0] instanceof Error ? a[0] : new Error(String(a[0] ?? 'unknown'));
+              window.Sentry?.captureException(err, a.length > 1 ? { extra: { args: a.slice(1) } } : undefined);
+            } catch { /* nunca quebrar o app por falha de observabilidade */ }
           },
         };
       })();
