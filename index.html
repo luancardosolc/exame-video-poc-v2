@@ -1281,6 +1281,13 @@
        Atualiza as CSS custom properties --sai-* no :root.
        Fallback: se não injetado, as vars já têm env() como default.
        ===================================================== */
+      window.__pocSetUser = function (user) {
+        if (!user || !user.id) return;
+        try {
+          window.Sentry?.setUser({ id: user.id, email: user.email || undefined });
+        } catch { /* nunca quebrar o app por falha de observabilidade */ }
+      };
+
       window.__pocSetSafeArea = function (safeArea) {
         if (!safeArea) return;
 
