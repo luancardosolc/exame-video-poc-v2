@@ -2935,21 +2935,22 @@
           }
 
           const parts = url.pathname.split("/").filter(Boolean);
-          const videoId =
-            host === "player.vimeo.com" && parts[0] === "video"
-              ? parts[1]
-              : parts[0];
-          const pathHash =
-            host === "player.vimeo.com" && parts[0] === "video"
-              ? parts[2]
-              : parts[1];
+          const isPlayerUrl = host === "player.vimeo.com" && parts[0] === "video";
+          const isManageUrl =
+            host === "vimeo.com" && parts[0] === "manage" && parts[1] === "videos";
+          const videoId = isPlayerUrl ? parts[1] : isManageUrl ? parts[2] : parts[0];
+          const pathHash = isPlayerUrl ? parts[2] : isManageUrl ? parts[3] : parts[1];
           const vimeoHash = url.searchParams.get("h") || pathHash || "";
 
           if (!videoId || !/^\d+$/.test(videoId)) {
             throw new Error("ID do Vimeo não encontrado na videoUrl.");
           }
 
-          return { videoId, vimeoHash };
+          return {
+            videoId,
+            vimeoHash,
+            sourceUrl: `https://vimeo.com/${videoId}${vimeoHash ? `/${vimeoHash}` : ""}`,
+          };
         }
 
         function createPayload() {
@@ -2969,7 +2970,7 @@
             media: {
               provider: "vimeo",
               videoId: vimeo.videoId,
-              sourceUrl: videoUrl,
+              sourceUrl: vimeo.sourceUrl,
               vimeoHash: vimeo.vimeoHash,
               startAt: Number.isFinite(startAt) && startAt > 0 ? Math.floor(startAt) : 0,
               aspectRatio: "16:9",
