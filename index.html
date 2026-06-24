@@ -1656,6 +1656,9 @@
         let _fileVideo = null;
         let _readyTimer = null;
         let _progressTimer = null;
+        let _lastPlaybackRate = null;
+        let _lastCaptionsKey = "";
+        let _lastSeekTime = null;
 
         function _clearReadyTimer() {
           if (!_readyTimer) return;
@@ -1856,6 +1859,9 @@
               _vimeoMsg({ method: "addEventListener", value: "play" });
               _vimeoMsg({ method: "addEventListener", value: "pause" });
               _vimeoMsg({ method: "addEventListener", value: "playProgress" });
+              _vimeoMsg({ method: "addEventListener", value: "seek" });
+              _vimeoMsg({ method: "addEventListener", value: "playbackratechange" });
+              _vimeoMsg({ method: "addEventListener", value: "texttrackchange" });
               _vimeoMsg({ method: "getDuration" });
               if (Number(startAt) > 0) {
                 _vimeoMsg({ method: "setCurrentTime", value: Number(startAt) });
@@ -1870,6 +1876,43 @@
                 duration: Number(data?.data?.duration ?? 0) || undefined,
                 percent: typeof data?.data?.percent === "number" ? data.data.percent : undefined,
               });
+            }
+            if (data.event === "seek") {
+              const seconds = Number(data?.data?.seconds ?? 0);
+              if (seconds !== _lastSeekTime) {
+                _lastSeekTime = seconds;
+                callbacks.onSeek?.({
+                  currentTime: seconds,
+                  duration: Number(data?.data?.duration ?? 0) || undefined,
+                });
+              }
+            }
+            if (data.event === "playbackratechange") {
+              const playbackRate = Number(data?.data?.playbackRate ?? 1);
+              if (playbackRate !== _lastPlaybackRate) {
+                _lastPlaybackRate = playbackRate;
+                callbacks.onSpeedChange?.({
+                  playbackRate,
+                  currentTime: State.currentTime,
+                  duration: State.duration,
+                });
+              }
+            }
+            if (data.event === "texttrackchange") {
+              const enabled = data?.data?.mode === "showing";
+              const language = data?.data?.language ?? "";
+              const label = data?.data?.label ?? "";
+              const key = `${enabled}|${language}|${label}`;
+              if (key !== _lastCaptionsKey) {
+                _lastCaptionsKey = key;
+                callbacks.onCaptionsChange?.({
+                  enabled,
+                  language,
+                  label,
+                  currentTime: State.currentTime,
+                  duration: State.duration,
+                });
+              }
             }
             if (data.method === "getDuration" && Number(data.value) > 0) {
               callbacks.onDuration?.({ duration: Number(data.value) });
@@ -1953,6 +1996,27 @@
             });
           });
           video.addEventListener("ended", () => callbacks.onEnded?.());
+          video.addEventListener("seeked", () => {
+            const seconds = video.currentTime;
+            if (seconds !== _lastSeekTime) {
+              _lastSeekTime = seconds;
+              callbacks.onSeek?.({
+                currentTime: seconds,
+                duration: Number.isFinite(video.duration) && video.duration > 0 ? video.duration : undefined,
+              });
+            }
+          });
+          video.addEventListener("ratechange", () => {
+            const playbackRate = video.playbackRate;
+            if (playbackRate !== _lastPlaybackRate) {
+              _lastPlaybackRate = playbackRate;
+              callbacks.onSpeedChange?.({
+                playbackRate,
+                currentTime: video.currentTime,
+                duration: Number.isFinite(video.duration) && video.duration > 0 ? video.duration : undefined,
+              });
+            }
+          });
           video.addEventListener("error", () => {
             const error = video.error;
             const message = error
@@ -2004,6 +2068,9 @@
         function destroy() {
           _clearReadyTimer();
           _clearProgressTimer();
+          _lastPlaybackRate = null;
+          _lastCaptionsKey = "";
+          _lastSeekTime = null;
           AppBridge.stopListeningIframeMessages();
           if (_ytPlayer) {
             try {
@@ -2168,6 +2235,10 @@
           status: type === "VIDEO_COMPLETED" ? "done" : "in_progress",
           ...(payload?.message ? { message: payload.message } : {}),
           ...(payload?.code ? { code: payload.code } : {}),
+          ...(typeof payload?.playbackRate === "number" ? { playbackRate: payload.playbackRate } : {}),
+          ...(typeof payload?.enabled === "boolean" ? { enabled: payload.enabled } : {}),
+          ...(payload?.language ? { language: payload.language } : {}),
+          ...(payload?.label ? { label: payload.label } : {}),
         });
       }
 
@@ -2331,6 +2402,21 @@
                 storyId: State.payload?.story.id,
                 storySlug: State.payload?.story.slug,
               });
+            }
+          },
+          onSeek(payload) {
+            if (isKnowledgePillMode()) {
+              sendKnowledgePillEvent("VIDEO_SEEKED", payload);
+            }
+          },
+          onSpeedChange(payload) {
+            if (isKnowledgePillMode()) {
+              sendKnowledgePillEvent("VIDEO_SPEED_CHANGED", payload);
+            }
+          },
+          onCaptionsChange(payload) {
+            if (isKnowledgePillMode()) {
+              sendKnowledgePillEvent("VIDEO_CAPTIONS_CHANGED", payload);
             }
           },
           onError(e) {
