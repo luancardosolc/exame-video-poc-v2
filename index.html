@@ -1659,8 +1659,6 @@
         let _lastPlaybackRate = null;
         let _lastCaptionsKey = "";
         let _lastSeekTime = null;
-        let _seekDebounceTimer = null;
-        let _pendingSeek = null;
 
         function _clearReadyTimer() {
           if (!_readyTimer) return;
@@ -2070,11 +2068,11 @@
         function destroy() {
           _clearReadyTimer();
           _clearProgressTimer();
-          if (_seekDebounceTimer) {
-            clearTimeout(_seekDebounceTimer);
-            _seekDebounceTimer = null;
+          if (State.seekDebounceTimer) {
+            clearTimeout(State.seekDebounceTimer);
+            State.seekDebounceTimer = null;
           }
-          _pendingSeek = null;
+          State.pendingSeek = null;
           _lastPlaybackRate = null;
           _lastCaptionsKey = "";
           _lastSeekTime = null;
@@ -2230,6 +2228,8 @@
         duration: 0,
         lastPlaybackState: 'idle',
         isCompleting: false,
+        seekDebounceTimer: null,
+        pendingSeek: null,
       };
 
       function isKnowledgePillMode() {
@@ -2304,6 +2304,8 @@
         State.duration = 0;
         State.lastPlaybackState = 'idle';
         State.isCompleting = false;
+        State.seekDebounceTimer = null;
+        State.pendingSeek = null;
         document.body.classList.toggle("knowledge-pill-mode", payload.behavior.knowledgePillMode);
 
         if (payload.behavior.showDebug) Logger.enable();
@@ -2412,11 +2414,11 @@
           onEnded() {
             State.isPlaying = false;
             _updateBtnPlay();
-            if (_seekDebounceTimer) {
-              clearTimeout(_seekDebounceTimer);
-              _seekDebounceTimer = null;
+            if (State.seekDebounceTimer) {
+              clearTimeout(State.seekDebounceTimer);
+              State.seekDebounceTimer = null;
             }
-            _pendingSeek = null;
+            State.pendingSeek = null;
             if (isKnowledgePillMode()) {
               State.lastPlaybackState = 'ended';
               State.isCompleting = true;
@@ -2438,26 +2440,26 @@
               const isNearEnd = duration > 0 && (duration - seconds <= 1.5);
               if (State.isCompleting || State.lastPlaybackState === 'ended' || isNearEnd) {
                 Logger.log("Seek automático de fim de vídeo suprimido", seconds);
-                if (_seekDebounceTimer) {
-                  clearTimeout(_seekDebounceTimer);
-                  _seekDebounceTimer = null;
+                if (State.seekDebounceTimer) {
+                  clearTimeout(State.seekDebounceTimer);
+                  State.seekDebounceTimer = null;
                 }
-                _pendingSeek = null;
+                State.pendingSeek = null;
                 return;
               }
-              _pendingSeek = {
+              State.pendingSeek = {
                 currentTime: seconds,
                 duration: duration
               };
-              if (_seekDebounceTimer) {
-                clearTimeout(_seekDebounceTimer);
+              if (State.seekDebounceTimer) {
+                clearTimeout(State.seekDebounceTimer);
               }
-              _seekDebounceTimer = setTimeout(() => {
-                _seekDebounceTimer = null;
-                if (!_pendingSeek) return;
-                const finalPos = _pendingSeek.currentTime;
-                const finalDur = _pendingSeek.duration;
-                _pendingSeek = null;
+              State.seekDebounceTimer = setTimeout(() => {
+                State.seekDebounceTimer = null;
+                if (!State.pendingSeek) return;
+                const finalPos = State.pendingSeek.currentTime;
+                const finalDur = State.pendingSeek.duration;
+                State.pendingSeek = null;
                 const isStillNearEnd = finalDur > 0 && (finalDur - finalPos <= 1.5);
                 if (State.isCompleting || State.lastPlaybackState === 'ended' || isStillNearEnd) {
                   return;
