@@ -2382,7 +2382,8 @@
             State.isPlaying = false;
             _updateBtnPlay();
             if (isKnowledgePillMode()) {
-              const isNearEnd = State.duration > 0 && (State.duration - State.currentTime <= 1.5);
+              const endSuppressionWindow = State.duration > 0 ? Math.min(5, Math.max(3, State.duration * 0.03)) : 3;
+              const isNearEnd = State.duration > 0 && (State.duration - State.currentTime <= endSuppressionWindow);
               if (State.lastPlaybackState !== 'paused' && State.lastPlaybackState !== 'ended' && !State.isCompleting && !isNearEnd) {
                 State.lastPlaybackState = 'paused';
                 sendKnowledgePillEvent("VIDEO_PAUSED");
@@ -2437,7 +2438,8 @@
             if (isKnowledgePillMode()) {
               const seconds = Number(payload?.currentTime ?? 0);
               const duration = Number(payload?.duration ?? State.duration ?? 0);
-              const isNearEnd = duration > 0 && (duration - seconds <= 1.5);
+              const endSuppressionWindow = duration > 0 ? Math.min(5, Math.max(3, duration * 0.03)) : 3;
+              const isNearEnd = duration > 0 && (duration - seconds <= endSuppressionWindow);
               if (State.isCompleting || State.lastPlaybackState === 'ended' || isNearEnd) {
                 Logger.log("Seek automático de fim de vídeo suprimido", seconds);
                 if (State.seekDebounceTimer) {
@@ -2460,7 +2462,8 @@
                 const finalPos = State.pendingSeek.currentTime;
                 const finalDur = State.pendingSeek.duration;
                 State.pendingSeek = null;
-                const isStillNearEnd = finalDur > 0 && (finalDur - finalPos <= 1.5);
+                const innerEndSuppressionWindow = finalDur > 0 ? Math.min(5, Math.max(3, finalDur * 0.03)) : 3;
+                const isStillNearEnd = finalDur > 0 && (finalDur - finalPos <= innerEndSuppressionWindow);
                 if (State.isCompleting || State.lastPlaybackState === 'ended' || isStillNearEnd) {
                   return;
                 }
