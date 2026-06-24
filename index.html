@@ -2236,6 +2236,18 @@
         return State.payload?.behavior?.knowledgePillMode === true;
       }
 
+      function isSeekNearCompletion(seconds, duration) {
+        if (!Number.isFinite(seconds) || !Number.isFinite(duration) || duration <= 0) {
+          return false;
+        }
+
+        const remaining = duration - seconds;
+        const progressRatio = seconds / duration;
+        const endSuppressionWindow = Math.min(20, Math.max(5, duration * 0.15));
+
+        return progressRatio >= 0.85 || remaining <= endSuppressionWindow;
+      }
+
       function sendKnowledgePillEvent(type, payload) {
         const slug = State.payload?.story?.slug ?? "";
         AppBridge.sendRaw({
@@ -2438,8 +2450,7 @@
             if (isKnowledgePillMode()) {
               const seconds = Number(payload?.currentTime ?? 0);
               const duration = Number(payload?.duration ?? State.duration ?? 0);
-              const endSuppressionWindow = duration > 0 ? Math.min(5, Math.max(3, duration * 0.03)) : 3;
-              const isNearEnd = duration > 0 && (duration - seconds <= endSuppressionWindow);
+              const isNearEnd = isSeekNearCompletion(seconds, duration);
               if (State.isCompleting || State.lastPlaybackState === 'ended' || isNearEnd) {
                 Logger.log("Seek automático de fim de vídeo suprimido", seconds);
                 if (State.seekDebounceTimer) {
@@ -2462,8 +2473,7 @@
                 const finalPos = State.pendingSeek.currentTime;
                 const finalDur = State.pendingSeek.duration;
                 State.pendingSeek = null;
-                const innerEndSuppressionWindow = finalDur > 0 ? Math.min(5, Math.max(3, finalDur * 0.03)) : 3;
-                const isStillNearEnd = finalDur > 0 && (finalDur - finalPos <= innerEndSuppressionWindow);
+                const isStillNearEnd = isSeekNearCompletion(finalPos, finalDur);
                 if (State.isCompleting || State.lastPlaybackState === 'ended' || isStillNearEnd) {
                   return;
                 }
