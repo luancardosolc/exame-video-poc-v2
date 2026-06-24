@@ -2071,6 +2071,8 @@
           _lastPlaybackRate = null;
           _lastCaptionsKey = "";
           _lastSeekTime = null;
+          State.lastPlaybackState = 'idle';
+          State.isCompleting = false;
           AppBridge.stopListeningIframeMessages();
           if (_ytPlayer) {
             try {
@@ -2219,6 +2221,8 @@
         startToken: 0,
         currentTime: 0,
         duration: 0,
+        lastPlaybackState: 'idle',
+        isCompleting: false,
       };
 
       function isKnowledgePillMode() {
@@ -2291,6 +2295,8 @@
         State.isPlaying = payload.media.autoplay;
         State.currentTime = 0;
         State.duration = 0;
+        State.lastPlaybackState = 'idle';
+        State.isCompleting = false;
         document.body.classList.toggle("knowledge-pill-mode", payload.behavior.knowledgePillMode);
 
         if (payload.behavior.showDebug) Logger.enable();
@@ -2355,7 +2361,10 @@
             State.isPlaying = true;
             _updateBtnPlay();
             if (isKnowledgePillMode()) {
-              sendKnowledgePillEvent("VIDEO_STARTED");
+              if (State.lastPlaybackState !== 'playing') {
+                State.lastPlaybackState = 'playing';
+                sendKnowledgePillEvent("VIDEO_STARTED");
+              }
             } else {
               AppBridge.send("player:play");
             }
@@ -2364,7 +2373,11 @@
             State.isPlaying = false;
             _updateBtnPlay();
             if (isKnowledgePillMode()) {
-              sendKnowledgePillEvent("VIDEO_PAUSED");
+              const isNearEnd = State.duration > 0 && (State.duration - State.currentTime <= 1.5);
+              if (State.lastPlaybackState !== 'paused' && State.lastPlaybackState !== 'ended' && !State.isCompleting && !isNearEnd) {
+                State.lastPlaybackState = 'paused';
+                sendKnowledgePillEvent("VIDEO_PAUSED");
+              }
             } else {
               AppBridge.send("player:pause");
             }
@@ -2393,6 +2406,8 @@
             State.isPlaying = false;
             _updateBtnPlay();
             if (isKnowledgePillMode()) {
+              State.lastPlaybackState = 'ended';
+              State.isCompleting = true;
               sendKnowledgePillEvent("VIDEO_COMPLETED", {
                 currentTime: State.duration || State.currentTime,
                 duration: State.duration || State.currentTime,
@@ -2406,6 +2421,12 @@
           },
           onSeek(payload) {
             if (isKnowledgePillMode()) {
+              const seconds = Number(payload?.currentTime ?? 0);
+              const isNearEnd = State.duration > 0 && (State.duration - seconds <= 1.5);
+              if (State.isCompleting || State.lastPlaybackState === 'ended' || isNearEnd) {
+                Logger.log("Seek automático de fim de vídeo suprimido", seconds);
+                return;
+              }
               sendKnowledgePillEvent("VIDEO_SEEKED", payload);
             }
           },
