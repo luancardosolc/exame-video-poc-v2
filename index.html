@@ -1659,6 +1659,8 @@
         let _lastPlaybackRate = null;
         let _lastCaptionsKey = "";
         let _lastSeekTime = null;
+        let _seekDebounceTimer = null;
+        let _pendingSeek = null;
 
         function _clearReadyTimer() {
           if (!_readyTimer) return;
@@ -2068,6 +2070,11 @@
         function destroy() {
           _clearReadyTimer();
           _clearProgressTimer();
+          if (_seekDebounceTimer) {
+            clearTimeout(_seekDebounceTimer);
+            _seekDebounceTimer = null;
+          }
+          _pendingSeek = null;
           _lastPlaybackRate = null;
           _lastCaptionsKey = "";
           _lastSeekTime = null;
@@ -2405,6 +2412,11 @@
           onEnded() {
             State.isPlaying = false;
             _updateBtnPlay();
+            if (_seekDebounceTimer) {
+              clearTimeout(_seekDebounceTimer);
+              _seekDebounceTimer = null;
+            }
+            _pendingSeek = null;
             if (isKnowledgePillMode()) {
               State.lastPlaybackState = 'ended';
               State.isCompleting = true;
@@ -2422,12 +2434,39 @@
           onSeek(payload) {
             if (isKnowledgePillMode()) {
               const seconds = Number(payload?.currentTime ?? 0);
-              const isNearEnd = State.duration > 0 && (State.duration - seconds <= 1.5);
+              const duration = Number(payload?.duration ?? State.duration ?? 0);
+              const isNearEnd = duration > 0 && (duration - seconds <= 1.5);
               if (State.isCompleting || State.lastPlaybackState === 'ended' || isNearEnd) {
                 Logger.log("Seek automático de fim de vídeo suprimido", seconds);
+                if (_seekDebounceTimer) {
+                  clearTimeout(_seekDebounceTimer);
+                  _seekDebounceTimer = null;
+                }
+                _pendingSeek = null;
                 return;
               }
-              sendKnowledgePillEvent("VIDEO_SEEKED", payload);
+              _pendingSeek = {
+                currentTime: seconds,
+                duration: duration
+              };
+              if (_seekDebounceTimer) {
+                clearTimeout(_seekDebounceTimer);
+              }
+              _seekDebounceTimer = setTimeout(() => {
+                _seekDebounceTimer = null;
+                if (!_pendingSeek) return;
+                const finalPos = _pendingSeek.currentTime;
+                const finalDur = _pendingSeek.duration;
+                _pendingSeek = null;
+                const isStillNearEnd = finalDur > 0 && (finalDur - finalPos <= 1.5);
+                if (State.isCompleting || State.lastPlaybackState === 'ended' || isStillNearEnd) {
+                  return;
+                }
+                sendKnowledgePillEvent("VIDEO_SEEKED", {
+                  currentTime: finalPos,
+                  duration: finalDur
+                });
+              }, 800);
             }
           },
           onSpeedChange(payload) {
