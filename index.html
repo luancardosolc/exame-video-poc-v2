@@ -1517,6 +1517,7 @@
                 raw.behavior?.allowFullscreenToggle !== false,
               showDebug: raw.behavior?.showDebug === true,
               knowledgePillMode: raw.behavior?.knowledgePillMode === true,
+              videoPlayerMode: raw.behavior?.videoPlayerMode === true,
             },
             theme: {
               mode: raw.theme?.mode ?? "dark",
@@ -1740,7 +1741,7 @@
           const playerVars = {
             autoplay: autoplay ? 1 : 0,
             mute: muted ? 1 : 0,
-            controls: 0,
+            controls: isVideoPlayerMode() ? 1 : 0,
             rel: 0,
             playsinline: 1,
             fs: 0,
@@ -1817,9 +1818,9 @@
             if (!el) return;
             el.style.cssText = "width:100%;height:100%;";
             const iframe = el.querySelector("iframe");
+            const ytPointerEvents = isVideoPlayerMode() ? "auto" : "none";
             if (iframe)
-              iframe.style.cssText =
-                "width:100%;height:100%;border:none;pointer-events:none;";
+              iframe.style.cssText = `width:100%;height:100%;border:none;pointer-events:${ytPointerEvents};`;
           }, 300);
         }
 
@@ -1831,7 +1832,7 @@
             autoplay: autoplay ? "1" : "0",
             muted: muted ? "1" : "0",
             loop: loop ? "1" : "0",
-            controls: isKnowledgePillMode() ? "1" : "0",
+            controls: isVideoPlayerMode() ? "1" : "0",
             title: "0",
             byline: "0",
             portrait: "0",
@@ -1841,7 +1842,7 @@
           });
           if (vimeoHash) params.set("h", vimeoHash);
 
-          const iframePointerEvents = isKnowledgePillMode() ? "auto" : "none";
+          const iframePointerEvents = isVideoPlayerMode() ? "auto" : "none";
           wrapper.innerHTML = `<iframe
       id="vimeo-iframe"
       src="https://player.vimeo.com/video/${videoId}?${params}"
@@ -1946,10 +1947,10 @@
           video.muted = muted;
           video.loop = loop;
           video.playsInline = true;
-          video.controls = false;
+          video.controls = isVideoPlayerMode();
           video.preload = "auto";
-          video.style.cssText =
-            "width:100%;height:100%;border:none;display:block;object-fit:fill;pointer-events:none;";
+          const filePointerEvents = isVideoPlayerMode() ? "auto" : "none";
+          video.style.cssText = `width:100%;height:100%;border:none;display:block;object-fit:fill;pointer-events:${filePointerEvents};`;
           video.setAttribute("playsinline", "");
           video.setAttribute("webkit-playsinline", "");
 
@@ -2232,8 +2233,16 @@
         pendingSeek: null,
       };
 
-      function isKnowledgePillMode() {
-        return State.payload?.behavior?.knowledgePillMode === true;
+      // `knowledgePillMode` é o nome histórico do campo (única consumidora até
+      // aqui era a Pílula de Conteúdo) — mantido por retrocompatibilidade com
+      // apps já publicados. `videoPlayerMode` é o nome genérico pra qualquer
+      // consumidor novo (ex. newsletter) que só quer player fullscreen com
+      // controles nativos + eventos de progresso, sem ser "pílula".
+      function isVideoPlayerMode() {
+        return (
+          State.payload?.behavior?.knowledgePillMode === true ||
+          State.payload?.behavior?.videoPlayerMode === true
+        );
       }
 
       function isSeekNearCompletion(seconds, duration) {
@@ -2318,7 +2327,10 @@
         State.isCompleting = false;
         State.seekDebounceTimer = null;
         State.pendingSeek = null;
-        document.body.classList.toggle("knowledge-pill-mode", payload.behavior.knowledgePillMode);
+        document.body.classList.toggle(
+          "knowledge-pill-mode",
+          payload.behavior.knowledgePillMode || payload.behavior.videoPlayerMode
+        );
 
         if (payload.behavior.showDebug) Logger.enable();
         Logger.log(
@@ -2370,7 +2382,7 @@
           onReady() {
             if (didFailBeforeReady) return;
             Logger.log("player:ready");
-            if (isKnowledgePillMode()) {
+            if (isVideoPlayerMode()) {
               sendKnowledgePillEvent("PLAYER_READY");
             } else {
               AppBridge.send("player:ready");
@@ -2381,7 +2393,7 @@
           onPlay() {
             State.isPlaying = true;
             _updateBtnPlay();
-            if (isKnowledgePillMode()) {
+            if (isVideoPlayerMode()) {
               if (State.lastPlaybackState !== 'playing') {
                 State.lastPlaybackState = 'playing';
                 sendKnowledgePillEvent("VIDEO_STARTED");
@@ -2393,7 +2405,7 @@
           onPause() {
             State.isPlaying = false;
             _updateBtnPlay();
-            if (isKnowledgePillMode()) {
+            if (isVideoPlayerMode()) {
               const endSuppressionWindow = State.duration > 0 ? Math.min(5, Math.max(3, State.duration * 0.03)) : 3;
               const isNearEnd = State.duration > 0 && (State.duration - State.currentTime <= endSuppressionWindow);
               if (State.lastPlaybackState !== 'paused' && State.lastPlaybackState !== 'ended' && !State.isCompleting && !isNearEnd) {
@@ -2406,7 +2418,7 @@
           },
           onDuration(payload) {
             State.duration = Math.max(0, Number(payload.duration) || 0);
-            if (!isKnowledgePillMode()) AppBridge.send("player:duration", payload);
+            if (!isVideoPlayerMode()) AppBridge.send("player:duration", payload);
           },
           onProgress(payload) {
             State.currentTime = Math.max(0, Number(payload.currentTime) || 0);
@@ -2418,7 +2430,7 @@
                   ? payload.currentTime / payload.duration
                   : null;
             if (pct !== null) VideoProgressBar.setProgress(pct);
-            if (isKnowledgePillMode()) {
+            if (isVideoPlayerMode()) {
               sendKnowledgePillEvent("VIDEO_PROGRESS", payload);
             } else {
               AppBridge.send("player:progress", { currentTime: payload.currentTime, duration: payload.duration });
@@ -2432,7 +2444,7 @@
               State.seekDebounceTimer = null;
             }
             State.pendingSeek = null;
-            if (isKnowledgePillMode()) {
+            if (isVideoPlayerMode()) {
               State.lastPlaybackState = 'ended';
               State.isCompleting = true;
               sendKnowledgePillEvent("VIDEO_COMPLETED", {
@@ -2447,7 +2459,7 @@
             }
           },
           onSeek(payload) {
-            if (isKnowledgePillMode()) {
+            if (isVideoPlayerMode()) {
               const seconds = Number(payload?.currentTime ?? 0);
               const duration = Number(payload?.duration ?? State.duration ?? 0);
               const isNearEnd = isSeekNearCompletion(seconds, duration);
@@ -2485,12 +2497,12 @@
             }
           },
           onSpeedChange(payload) {
-            if (isKnowledgePillMode()) {
+            if (isVideoPlayerMode()) {
               sendKnowledgePillEvent("VIDEO_SPEED_CHANGED", payload);
             }
           },
           onCaptionsChange(payload) {
-            if (isKnowledgePillMode()) {
+            if (isVideoPlayerMode()) {
               sendKnowledgePillEvent("VIDEO_CAPTIONS_CHANGED", payload);
             }
           },
@@ -2501,7 +2513,7 @@
               "Vídeo indisponível",
               "Não foi possível carregar este vídeo no momento.",
             );
-            if (isKnowledgePillMode()) {
+            if (isVideoPlayerMode()) {
               sendKnowledgePillEvent("PLAYER_ERROR", {
                 code: e?.code ?? "PLAYER_ERROR",
                 message: e?.message ?? "Falha ao carregar player.",
@@ -2556,7 +2568,7 @@
           State.isFullscreen = false;
           AppBridge.send("fullscreen:exit");
         }
-        if (isKnowledgePillMode()) {
+        if (isVideoPlayerMode()) {
           sendKnowledgePillEvent("PLAYER_CLOSED", {
             currentTime: State.currentTime,
             duration: State.duration,

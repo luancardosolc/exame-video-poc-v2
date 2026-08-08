@@ -87,6 +87,8 @@ type WebStoryVideoPayload = {
     startFullscreen?: boolean; // girar para landscape ao abrir
     allowFullscreenToggle?: boolean; // exibe botão de fullscreen — default: true
     showDebug?: boolean; // habilita console.log — default: false
+    knowledgePillMode?: boolean; // nome histórico — ver `videoPlayerMode` abaixo; mantido só por retrocompatibilidade com apps já publicados. Novos consumidores devem usar `videoPlayerMode`.
+    videoPlayerMode?: boolean; // default: false. Esconde a UI de Story (overlays, gradientes, controles customizados, gestos) e ativa os controles NATIVOS do provider (YouTube/Vimeo/mp4) com pointer-events liberado no player. Também troca o protocolo de eventos web→app para o formato `PLAYER_READY`/`VIDEO_STARTED`/`VIDEO_PROGRESS`/`VIDEO_PAUSED`/`VIDEO_COMPLETED` (em vez de `player:ready`/`player:progress`/etc). Equivalente a `knowledgePillMode`, sob nome genérico — os dois campos são combinados com OR internamente.
   };
 
   theme?: {
