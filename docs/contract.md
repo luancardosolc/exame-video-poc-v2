@@ -210,7 +210,7 @@ Todos os eventos são enviados como JSON via `window.ReactNativeWebView.postMess
 
 | `type`             | `payload`                                                                   | Quando                                                                         |
 | ------------------ | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `ready`            | —                                                                           | Página carregou, `__pocV2LoadStory` registrado                                 |
+| `ready`            | `{ version: string }`                                                      | Página carregou, `__pocV2LoadStory` registrado                                 |
 | `player:ready`     | —                                                                           | Player inicializado e pronto para reprodução                                   |
 | `player:play`      | —                                                                           | Reprodução iniciada ou retomada                                                |
 | `player:pause`     | —                                                                           | Reprodução pausada                                                             |
@@ -223,6 +223,16 @@ Todos os eventos são enviados como JSON via `window.ReactNativeWebView.postMess
 | `close`            | —                                                                           | Usuário fechou o player                                                        |
 | `story:navigate`   | `{ direction: "previous" \| "next", storyId?: string, storySlug?: string }` | Usuário tocou nas laterais ou fez swipe horizontal para pedir story anterior ou próximo |
 | `analytics`        | `{ event: string, data: object }`                                           | Ação rastreável do usuário                                                     |
+
+### Versionamento (`APP_VERSION`)
+
+A constante `APP_VERSION`, definida no topo do `index.html`, identifica a versão do player/contrato em produção. Segue `MAJOR.MINOR.PATCH`:
+
+- **MAJOR**: mudança que quebra o contrato de payload/eventos (exige app novo em conjunto).
+- **MINOR**: nova funcionalidade retrocompatível (ex.: novo tipo de evento, novo modo de player).
+- **PATCH**: correção de bug sem mudança de contrato.
+
+Bump a cada deploy relevante em `plus.exame.dev` (ver README do `exameplus-web`). O valor é enviado ao app no evento `ready` (`{ version: APP_VERSION }`) para rastreabilidade em observabilidade (Sentry/Bugsnag), e o app o usa como cache-buster (`?v=<version>`) na URL da WebView.
 
 ### Navegação lateral entre stories
 

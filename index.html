@@ -1183,6 +1183,12 @@
     <script>
       "use strict";
 
+      // Versão do contrato/player, independente do versionamento do app.
+      // Bump a cada deploy relevante — enviada ao app no evento `ready` para
+      // rastreabilidade (Sentry/Bugsnag) e usada pelo app como cache-buster
+      // (`?v=`) na URL do WebView.
+      const APP_VERSION = "1.0.0";
+
       const Logger = (function () {
         let _on = false;
         return {
@@ -3278,11 +3284,11 @@
         if (paramEncoded) {
           Logger.log("modo browser: payload via query param");
           __handlePayload(paramEncoded);
-          AppBridge.send("ready");
+          AppBridge.send("ready", { version: APP_VERSION });
           return;
         }
 
-        AppBridge.send("ready");
+        AppBridge.send("ready", { version: APP_VERSION });
         Logger.log("pronto, aguardando payload do app");
       }
 
